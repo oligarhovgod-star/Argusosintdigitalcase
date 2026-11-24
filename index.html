@@ -1,0 +1,1082 @@
+<!doctype html><html><head><meta charset=utf8><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#08090b"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="OSINT Hub"><link rel="apple-touch-icon" href="icons/icon-192.png"><link rel="icon" href="icons/icon-192.png"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>OSINT Hub</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sidebar of 5 sections + sticky topbar with magnifier; dark-only, monochrome with cool steel accent */
+@property --r{syntax:'<length>';inherits:false;initial-value:0px}
+:root{
+  --bg:#08090b;--bg2:#0d0f12;--panel:#121418;--panel2:#181b20;--line:#23272e;--line2:#333841;
+  --fg:#e7e9ec;--mute:#9298a2;--dim:#626873;--accent:#c7d0db;--accent2:#8d9db1;
+  --good:#9fc7a8;--warn:#d6b98a;--bad:#d89c9c;
+  --ui:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.22,.7,.2,1);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 14px/1.55 var(--ui);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 24px;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bg)}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:1px solid var(--accent);outline-offset:2px}
+::selection{background:#3a424e}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:#2a2f37;border-radius:9px}
+
+/* ambient background */
+.amb{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.amb i{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;animation:drift 26s ease-in-out infinite alternate}
+.amb i:nth-child(1){width:46vmax;height:46vmax;left:-12vmax;top:-14vmax;background:#1a1e25}
+.amb i:nth-child(2){width:38vmax;height:38vmax;right:-10vmax;bottom:-12vmax;background:#20252d;animation-duration:34s}
+.amb i:nth-child(3){width:26vmax;height:26vmax;left:38%;top:30%;background:#14171c;animation-duration:42s}
+@keyframes drift{to{transform:translate3d(6vmax,4vmax,0) scale(1.15)}}
+
+/* shell */
+.shell{display:grid;grid-template-columns:232px minmax(0,1fr);gap:28px;max-width:1380px;margin:0 auto}
+.side{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;height:100vh;padding:22px 0;display:flex;flex-direction:column;gap:6px}
+.brand{display:flex;align-items:center;gap:12px;padding:4px 10px 22px}
+.brand b{font-weight:300;font-size:19px;letter-spacing:.14em}
+.brand span{font:500 10px var(--mono);color:var(--dim);letter-spacing:.1em}
+.logo{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 32% 30%,#f4f6f9,#8b97a6 38%,#20252c 72%);box-shadow:0 0 28px rgba(199,208,219,.18)}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav button{all:unset;box-sizing:border-box;position:relative;overflow:hidden;isolation:isolate;cursor:pointer;display:flex;align-items:center;gap:13px;padding:12px 14px;border-radius:14px;color:var(--mute);transition:color .4s var(--ease),background .5s var(--ease),transform .4s var(--ease)}
+.nav button:hover{color:var(--fg)}
+.nav button .n{font:500 10px var(--mono);color:var(--dim);width:16px}
+.nav button .t{display:flex;flex-direction:column;line-height:1.25}
+.nav button .t small{font-size:11px;color:var(--dim)}
+.nav button[aria-current="true"]{color:var(--fg);background:linear-gradient(135deg,#1b1f25,#13161a);box-shadow:inset 0 0 0 1px var(--line2)}
+.side .foot{margin-top:auto;padding:0 10px;color:var(--dim);font-size:11px;line-height:1.5}
+
+/* main */
+.main{min-width:0;padding-bottom:40px}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;display:flex;align-items:center;gap:14px;padding:18px 0 14px;background:linear-gradient(var(--bg) 72%,rgba(8,9,11,0))}
+.topbar h1{margin:0;font-weight:200;font-size:clamp(24px,3.4vw,38px);letter-spacing:-.01em;line-height:1.1;flex:1;min-width:0}
+.topbar h1 em{font-style:normal;color:var(--dim)}
+.iconbtn{all:unset;box-sizing:border-box;cursor:pointer;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line2);position:relative;overflow:hidden;isolation:isolate;transition:transform .5s var(--ease),box-shadow .5s var(--ease)}
+.iconbtn:hover{transform:scale(1.06);box-shadow:inset 0 0 0 1px #4a515d,0 0 30px rgba(199,208,219,.1)}
+.iconbtn svg{width:19px;height:19px;stroke:var(--accent);fill:none;stroke-width:1.6;stroke-linecap:round}
+.kbd{font:500 10px var(--mono);color:var(--dim);border:1px solid var(--line2);border-radius:6px;padding:1px 6px}
+
+/* views */
+.view{display:none}
+.view.on{display:block;animation:viewin .7s var(--ease) both}
+@keyframes viewin{from{opacity:0;transform:translateY(14px);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
+.lead{color:var(--mute);max-width:70ch;margin:0 0 22px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border-radius:20px;padding:20px;box-shadow:inset 0 0 0 1px var(--line);min-width:0}
+.card h3{margin:0 0 4px;font-weight:500;font-size:15px}
+.card h4{margin:18px 0 8px;font:500 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.card p{margin:0 0 10px;color:var(--mute)}
+.sub{color:var(--dim);font-size:12px}
+.mono{font-family:var(--mono);font-size:12px}
+
+/* liquid hover + ripple */
+.liquid{position:relative;overflow:hidden;isolation:isolate}
+.liquid::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:0;
+  background:radial-gradient(circle var(--r) at var(--x,50%) var(--y,50%),rgba(210,219,230,.13),rgba(210,219,230,0) 100%);
+  transition:--r .9s var(--ease),opacity .6s var(--ease)}
+.liquid:hover::before{--r:300px;opacity:1}
+.liquid.press::before{--r:520px;opacity:1}
+.rip{position:absolute;border-radius:50%;pointer-events:none;z-index:0;transform:translate(-50%,-50%) scale(0);
+  background:radial-gradient(circle,rgba(225,232,242,.26),rgba(225,232,242,.08) 45%,rgba(225,232,242,0) 70%);animation:rip 1s var(--ease) forwards}
+@keyframes rip{to{transform:translate(-50%,-50%) scale(1);opacity:0}}
+.card.liquid{transition:box-shadow .6s var(--ease),transform .6s var(--ease)}
+.card.liquid:hover{box-shadow:inset 0 0 0 1px var(--line2)}
+
+/* controls */
+.btn{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:999px;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line2);color:var(--fg);font-weight:500;font-size:13px;position:relative;overflow:hidden;isolation:isolate;transition:transform .4s var(--ease),box-shadow .5s var(--ease),color .4s}
+.btn:hover{box-shadow:inset 0 0 0 1px #4d5460;transform:translateY(-1px)}
+.btn.pri{background:linear-gradient(135deg,#e4e9ef,#aab5c3);color:#0b0d10;box-shadow:none}
+.btn.pri:hover{box-shadow:0 6px 30px rgba(199,208,219,.2)}
+.btn.sm{padding:5px 11px;font-size:12px}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.inp,.ta,.sel{width:100%;background:#0b0d10;border:0;border-radius:14px;padding:12px 15px;box-shadow:inset 0 0 0 1px var(--line);color:var(--fg);transition:box-shadow .5s var(--ease),background .5s}
+.inp:focus,.ta:focus,.sel:focus{outline:none;box-shadow:inset 0 0 0 1px #566070,0 0 0 5px rgba(199,208,219,.05);background:#0e1013}
+.ta{resize:vertical;min-height:110px;font:12.5px/1.6 var(--mono)}
+.big{font-size:17px;padding:16px 20px;border-radius:18px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chip{all:unset;box-sizing:border-box;cursor:pointer;padding:5px 12px;border-radius:999px;font-size:12px;color:var(--mute);box-shadow:inset 0 0 0 1px var(--line);transition:all .4s var(--ease)}
+.chip:hover{color:var(--fg);box-shadow:inset 0 0 0 1px var(--line2)}
+.chip.on{color:#0b0d10;background:var(--accent);box-shadow:none}
+.tag{font:500 10px var(--mono);letter-spacing:.06em;color:var(--mute);border:1px solid var(--line2);border-radius:6px;padding:1px 7px;white-space:nowrap}
+.note{border-radius:14px;padding:11px 14px;font-size:12.5px;color:var(--mute);background:#0d0f12;box-shadow:inset 0 0 0 1px var(--line)}
+.note.warn{box-shadow:inset 0 0 0 1px #4a3f2c;color:#cdbd9f}
+.lbl{display:block;font:500 10px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin:0 0 6px}
+
+/* result links + commands */
+.links{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.lk{display:flex;flex-direction:column;gap:3px;padding:13px 15px;border-radius:15px;background:#0d0f12;box-shadow:inset 0 0 0 1px var(--line);color:var(--fg);position:relative;overflow:hidden;isolation:isolate;text-decoration:none!important}
+.lk b{font-weight:500;font-size:13.5px}.lk span{font-size:12px;color:var(--dim)}
+.cmd{display:flex;align-items:center;gap:10px;background:#0b0d10;border-radius:12px;padding:9px 10px 9px 14px;box-shadow:inset 0 0 0 1px var(--line);margin-bottom:8px}
+.cmd code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;font:12.5px var(--mono);color:#cdd5df}
+.cmd small{color:var(--dim);font-size:11px;white-space:nowrap}
+
+/* chat */
+.chat{display:flex;flex-direction:column;gap:12px;min-height:0}
+.log{display:flex;flex-direction:column;gap:12px;max-height:420px;min-height:120px;overflow-y:auto;padding-right:4px}
+.msg{padding:12px 15px;border-radius:16px;max-width:96%;font-size:13.5px;line-height:1.6;overflow-wrap:anywhere}
+.msg.u{align-self:flex-end;background:#1c2026;box-shadow:inset 0 0 0 1px var(--line2)}
+.msg.a{align-self:flex-start;background:#0d0f12;box-shadow:inset 0 0 0 1px var(--line)}
+.msg p{margin:0 0 8px;color:inherit}.msg p:last-child{margin:0}
+.msg code{font:12px var(--mono);background:#181b20;padding:1px 6px;border-radius:5px}
+.msg ul,.msg ol{margin:4px 0 8px;padding-left:20px}
+.msg h5{margin:8px 0 4px;font-size:13px;font-weight:600}
+.think{color:var(--dim);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.aihead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.aihead .dot{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 12px var(--good)}
+.aihead.off .dot{background:var(--dim);box-shadow:none}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl td,.tbl th{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl th{font:500 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);width:36%}
+.tbl td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+
+/* drop + media */
+.drop{border:1px dashed var(--line2);border-radius:18px;padding:28px 16px;text-align:center;color:var(--mute);cursor:pointer;transition:all .5s var(--ease);background:#0b0d10}
+.drop:hover,.drop.over{border-color:#5a6472;background:#0e1114;color:var(--fg)}
+.stage{position:relative;border-radius:16px;overflow:auto;background:#050607;box-shadow:inset 0 0 0 1px var(--line);max-height:460px;display:grid;place-items:center}
+.stage img,.stage video{display:block;max-width:100%;transform-origin:center;transition:filter .3s}
+.rng{display:grid;grid-template-columns:90px 1fr 44px;gap:10px;align-items:center;font-size:12px;color:var(--mute)}
+input[type=range]{accent-color:var(--accent);width:100%}
+
+/* learn */
+.lvl{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.step{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+.step:last-child{border:0}
+.step input{margin-top:4px;accent-color:var(--accent)}
+.step b{font-weight:500}.step small{display:block;color:var(--dim)}
+.bar{height:3px;border-radius:3px;background:var(--line);overflow:hidden;margin:10px 0 4px}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#6f7d8f,#dfe5ec);transition:width .8s var(--ease)}
+details{border-radius:14px;box-shadow:inset 0 0 0 1px var(--line);padding:2px 14px;margin-bottom:8px;background:#0d0f12}
+summary{cursor:pointer;padding:11px 0;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:10px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--dim);transition:transform .4s var(--ease)}
+details[open] summary::after{transform:rotate(45deg)}
+details>div{padding:0 0 14px;color:var(--mute)}
+
+/* viz */
+.vzwrap{position:relative;border-radius:20px;overflow:hidden;background:radial-gradient(circle at 50% 40%,#0f1215,#07080a);box-shadow:inset 0 0 0 1px var(--line);height:min(62vh,560px);min-height:340px}
+.vzwrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.legend{position:absolute;left:12px;bottom:12px;display:flex;gap:6px;flex-wrap:wrap;max-width:75%;pointer-events:none}
+.legend span{font:10px var(--mono);color:var(--mute);display:flex;align-items:center;gap:5px;background:rgba(8,9,11,.7);padding:2px 8px;border-radius:999px}
+.legend i{width:7px;height:7px;border-radius:50%}
+.detail{position:absolute;right:12px;top:12px;max-width:min(260px,60%);background:rgba(14,16,19,.9);backdrop-filter:blur(10px);border-radius:14px;padding:11px 13px;font-size:12px;box-shadow:inset 0 0 0 1px var(--line2)}
+.tl{position:relative;padding-left:22px;margin-top:6px}
+.tl::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:linear-gradient(var(--line2),transparent)}
+.ev{position:relative;padding:0 0 18px}
+.ev::before{content:"";position:absolute;left:-21px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--bg);box-shadow:0 0 0 1px var(--accent2),0 0 14px rgba(199,208,219,.25)}
+.ev time{font:500 11px var(--mono);color:var(--accent2)}.ev b{display:block;font-weight:500}.ev span{color:var(--dim);font-size:12px}
+
+/* catalog overlay */
+.ov{position:fixed;inset:0;z-index:100;display:none;background:rgba(5,6,8,.72);backdrop-filter:blur(18px) saturate(.8);-webkit-backdrop-filter:blur(18px)}
+.ov.on{display:block;animation:ovin .5s var(--ease) both}
+@keyframes ovin{from{opacity:0;backdrop-filter:blur(0)}to{opacity:1}}
+.ovbox{max-width:860px;margin:0 auto;height:100%;display:flex;flex-direction:column;gap:14px;padding:calc(env(safe-area-inset-top,0px) + 26px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 16px) max(16px,env(safe-area-inset-left,0px));animation:boxin .7s var(--ease) both}
+@keyframes boxin{from{transform:translateY(-18px) scale(.985);opacity:0}to{transform:none;opacity:1}}
+.ovlist{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;padding:13px 16px;border-radius:16px;background:rgba(18,20,24,.8);box-shadow:inset 0 0 0 1px var(--line);color:var(--fg);text-decoration:none!important;position:relative;overflow:hidden;isolation:isolate}
+.item b{font-weight:600}.item p{grid-column:1/2;margin:0;color:var(--mute);font-size:12.5px}
+.item .meta{display:flex;gap:6px;align-items:center;grid-row:1/3;grid-column:2}
+.star{all:unset;cursor:pointer;color:var(--dim);font-size:16px;padding:2px 4px;transition:color .3s,transform .4s var(--ease)}
+.star.on{color:var(--warn)}.star:hover{transform:scale(1.25)}
+
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 86px);transform:translate(-50%,20px);background:#1d2128;box-shadow:inset 0 0 0 1px var(--line2);padding:9px 16px;border-radius:999px;font-size:12.5px;opacity:0;pointer-events:none;transition:all .6s var(--ease);z-index:120}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.hide{display:none!important}
+
+/* narrow */
+@media (max-width:900px){
+  .shell{grid-template-columns:minmax(0,1fr);gap:0}
+  .side{position:fixed;left:0;right:0;bottom:0;top:auto;height:auto;z-index:70;padding:8px max(10px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));background:rgba(10,11,14,.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 -1px 0 var(--line)}
+  .brand,.side .foot{display:none}
+  .nav{flex-direction:row;justify-content:flex-start;gap:2px;overflow-x:auto}
+  .nav button{flex:1 0 auto;min-width:76px;flex-direction:column;gap:2px;padding:8px 6px;border-radius:12px;text-align:center;align-items:center}
+  .nav button .t small{display:none}
+  .nav button .t{font-size:10.5px;align-items:center}
+  .nav button .n{width:auto;font-size:9px}
+  .main{padding-bottom:96px}
+  .split,.g2,.g3{grid-template-columns:minmax(0,1fr)}
+  .rng{grid-template-columns:76px 1fr 40px}
+}
+.fi{padding:14px 16px;border-radius:16px;background:#0d0f12;box-shadow:inset 0 0 0 1px var(--line);margin-bottom:10px}
+.fnote{margin:8px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;max-height:150px;overflow:auto;font:12px/1.55 var(--mono);color:var(--mute)}
+.sel.sm{width:auto;padding:5px 12px;font-size:12px;border-radius:999px}
+.nav{scrollbar-width:none}.nav::-webkit-scrollbar{display:none}
+@media (prefers-reduced-motion:reduce){*,*::before{animation-duration:.01ms!important;transition-duration:.01ms!important}.amb i{animation:none}}
+
+/* ===== v0.2: smoothness, depth, bubbles ===== */
+html{scroll-behavior:smooth}
+*{-webkit-tap-highlight-color:transparent}
+.amb::after{content:"";position:absolute;left:0;top:0;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle,rgba(150,172,200,.085),rgba(150,172,200,0) 65%);transform:translate3d(calc(var(--mx,50vw) - 280px),calc(var(--my,35vh) - 280px),0);transition:transform 1.4s var(--ease);will-change:transform}
+.topbar h1{background:linear-gradient(180deg,#fff 20%,#8f9bab);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.topbar h1 em{-webkit-text-fill-color:var(--dim)}
+.card{box-shadow:inset 0 0 0 1px var(--line),inset 0 1px 0 rgba(255,255,255,.045),0 22px 44px -28px rgba(0,0,0,.75)}
+.card.liquid{transition:box-shadow .7s var(--ease),transform .7s var(--ease)}
+.card.liquid:hover{transform:translateY(-2px);box-shadow:inset 0 0 0 1px var(--line2),inset 0 1px 0 rgba(255,255,255,.06),0 30px 54px -28px rgba(0,0,0,.85)}
+.btn,.chip,.iconbtn,.lk,.item,.nav button{transition-property:transform,box-shadow,background,color,opacity;transition-duration:.45s;transition-timing-function:var(--ease)}
+.btn:active,.chip:active,.iconbtn:active,.lk:active,.item:active{transform:scale(.96);transition-duration:.12s}
+.nav button:active{transform:scale(.97)}
+.nav button::after{content:"";position:absolute;left:0;top:50%;width:3px;height:20px;margin-top:-10px;border-radius:3px;background:var(--accent);box-shadow:0 0 14px rgba(199,208,219,.55);transform:scaleY(0);opacity:0;transition:transform .6s var(--ease),opacity .4s}
+.nav button[aria-current="true"]::after{transform:scaleY(1);opacity:1}
+.nav button:hover:not([aria-current="true"]){background:rgba(255,255,255,.025)}
+.inp:hover,.ta:hover,.sel:hover{box-shadow:inset 0 0 0 1px var(--line2)}
+.iconbtn[aria-pressed="false"]{opacity:.5}
+.view.on{animation:none}
+@keyframes rise-in{from{opacity:0;transform:translateY(18px) scale(.985);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+.view.on>:not(.grid):not(.split),.view.on .grid>*,.view.on .split>*{animation:rise-in .75s var(--ease) backwards}
+.ov.on .item{animation:rise-in .55s var(--ease) backwards}
+@media (max-width:900px){.nav button::after{left:50%;top:auto;bottom:2px;width:18px;height:3px;margin:0 0 0 -9px;transform:scaleX(0)}.nav button[aria-current="true"]::after{transform:scaleX(1)}}
+@media (prefers-reduced-motion:reduce){.bubs{display:none}.amb::after{transition:none}}
+
+/* bubbles */
+.bubs{position:fixed;inset:0;z-index:30;pointer-events:none;overflow:hidden}
+.bw{position:absolute;bottom:-70px;pointer-events:none;will-change:transform,opacity;animation:bub-rise var(--dur,26s) linear both}
+@keyframes bub-rise{0%{transform:translate3d(0,0,0);opacity:0}6%{opacity:1}90%{opacity:1}100%{transform:translate3d(0,calc(-100vh - 140px),0);opacity:0}}
+@keyframes bub-sway{from{transform:translateX(calc(var(--sw,16px)*-1))}to{transform:translateX(var(--sw,16px))}}
+.bub{all:unset;position:relative;display:block;width:100%;height:100%;border-radius:50%;cursor:pointer;pointer-events:auto;opacity:.62;
+  background:radial-gradient(circle at 30% 26%,rgba(255,255,255,.7) 0 7%,rgba(255,255,255,0) 24%),radial-gradient(circle at 50% 52%,rgba(199,208,219,.03) 52%,rgba(199,208,219,.2) 100%);
+  box-shadow:inset 0 0 0 1px rgba(214,224,238,.3),inset -3px -4px 8px rgba(160,180,210,.12),0 0 14px rgba(160,180,210,.1);
+  animation:bub-sway var(--sd,7s) ease-in-out infinite alternate;transition:scale .5s var(--ease),opacity .4s}
+.bub::before{content:"";position:absolute;inset:-9px;border-radius:50%}
+.bub:hover{scale:1.12;opacity:.9}
+.bub::after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 1px rgba(225,233,245,.6);opacity:0}
+.bub.pop{pointer-events:none;animation:bub-sway var(--sd,7s) ease-in-out infinite alternate,bub-pop .5s var(--ease) forwards}
+.bub.pop::after{animation:bub-ring .6s var(--ease) forwards}
+@keyframes bub-pop{35%{scale:1.3;opacity:.95}100%{scale:1.55;opacity:0}}
+@keyframes bub-ring{from{opacity:.9;scale:1}to{opacity:0;scale:2.3}}
+.bw>i{position:absolute;left:50%;top:50%;border-radius:50%;background:rgba(214,224,238,.75);animation:bub-drop .6s var(--ease) forwards;pointer-events:none}
+@keyframes bub-drop{from{transform:translate(-50%,-50%) scale(1);opacity:.9}to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.2);opacity:0}}
+</style>
+<div class="amb"><i></i><i></i><i></i></div>
+<div class="shell">
+<aside class="side">
+  <div class="brand"><div class="logo"></div><div><b>OSINT</b><br><span>HUB · v0.1</span></div></div>
+  <nav class="nav" id="nav">
+    <button class="liquid" data-v="search"><span class="n">01</span><span class="t">Поиск<small>люди · номера · реестры</small></span></button>
+    <button class="liquid" data-v="geo"><span class="n">02</span><span class="t">GEOINT<small>фото · видео · места</small></span></button>
+    <button class="liquid" data-v="se"><span class="n">03</span><span class="t">Соц. инженерия<small>защита и учения</small></span></button>
+    <button class="liquid" data-v="learn"><span class="n">04</span><span class="t">Обучение<small>кейсы · треки</small></span></button>
+    <button class="liquid" data-v="viz"><span class="n">05</span><span class="t">Визуализация<small>связи · хронология</small></span></button>
+    <button class="liquid" data-v="case"><span class="n">06</span><span class="t">Дело<small>журнал · отчёт</small></span></button>
+  </nav>
+  <div class="foot">Только открытые источники и законные основания. Данные остаются в вашем браузере.</div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <h1 id="ttl">Поиск</h1>
+    <button class="iconbtn liquid" id="lupa" aria-label="Каталог инструментов"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
+  </div>
+
+  <!-- 01 SEARCH -->
+  <section class="view" id="v-search">
+    <p class="lead">Введите номер телефона, e-mail, ник, домен, IP, имя или компанию. Тип определится сам. Вы получите готовые ссылки на открытые источники и команды для Sherlock, Maigret, Holehe и других.</p>
+    <div class="card liquid" style="margin-bottom:16px">
+      <input class="inp big" id="q" placeholder="+7 999 123-45-67 · name@mail.com · nickname · example.com · 8.8.8.8" autocomplete="off" spellcheck="false">
+      <div class="row" style="margin-top:12px" id="qtypes"></div>
+      <div class="note warn" style="margin-top:12px">Поиск по людям допустим при законном основании: журналистика, проверка контрагента, безопасность, собственные данные. Не используйте результаты для преследования или слежки.</div>
+    </div>
+    <div class="split">
+      <div class="grid" id="res"></div>
+      <div class="card" id="chat1"></div>
+    </div>
+  </section>
+
+  <!-- 02 GEOINT -->
+  <section class="view" id="v-geo">
+    <p class="lead">Загрузите фото или видео. Метаданные читаются прямо в браузере, файл никуда не отправляется. ИИ-помощник работает только когда вы сами его запускаете.</p>
+    <div class="split">
+      <div class="grid">
+        <div class="card">
+          <label class="drop liquid" id="drop"><input type="file" id="file" accept="image/*,video/*" hidden>Перетащите файл сюда или нажмите, чтобы выбрать<br><span class="sub">JPEG с EXIF · PNG · WebP · MP4 · WebM</span></label>
+          <div class="stage hide" id="stage"></div>
+          <div class="row hide" id="vidbar" style="margin-top:10px"><button class="btn sm liquid" id="grab">Взять кадр</button><button class="btn sm liquid" id="useframe">Использовать кадр как фото</button><span class="sub mono" id="vtime"></span></div>
+          <div class="hide" id="filters" style="margin-top:14px;display:grid;gap:8px">
+            <div class="rng"><span>Яркость</span><input type="range" id="fb" min="40" max="260" value="100"><span class="mono" id="fbv">100</span></div>
+            <div class="rng"><span>Контраст</span><input type="range" id="fc" min="40" max="300" value="100"><span class="mono" id="fcv">100</span></div>
+            <div class="rng"><span>Насыщ.</span><input type="range" id="fs" min="0" max="300" value="100"><span class="mono" id="fsv">100</span></div>
+            <div class="rng"><span>Масштаб</span><input type="range" id="fz" min="100" max="500" value="100"><span class="mono" id="fzv">100</span></div>
+            <div class="row"><button class="btn sm liquid" id="finv">Инверсия</button><button class="btn sm liquid" id="fgray">Ч/б</button><button class="btn sm liquid" id="freset">Сброс</button></div>
+          </div>
+        </div>
+        <div class="card"><div class="row" style="justify-content:space-between;margin-bottom:6px"><h3 style="margin:0">Метаданные</h3><button class="btn sm liquid" id="addmeta">Добавить в дело</button></div><p class="sub" id="metaHint">Загрузите файл, чтобы увидеть EXIF, GPS и контрольную сумму.</p><div class="scroll"><table class="tbl" id="meta"></table></div><div class="row hide" id="gpsLinks" style="margin-top:12px"></div></div>
+      </div>
+      <div class="grid">
+        <div class="card" id="chat2"></div>
+        <div class="card"><h3>Тень → время суток</h3><p class="sub">Угол Солнца по предмету и тени, затем подходящее время для даты и места.</p>
+          <div class="grid g2" style="gap:10px">
+            <div><span class="lbl">Высота предмета, м</span><input class="inp" id="sh" type="number" step="any" value="2"></div>
+            <div><span class="lbl">Длина тени, м</span><input class="inp" id="sl" type="number" step="any" value="3"></div>
+            <div><span class="lbl">Широта</span><input class="inp" id="sla" type="number" step="any" placeholder="55.7558"></div>
+            <div><span class="lbl">Долгота</span><input class="inp" id="slo" type="number" step="any" placeholder="37.6173"></div>
+            <div><span class="lbl">Дата</span><input class="inp" id="sd" type="date"></div>
+            <div><span class="lbl">Часовой пояс UTC±</span><input class="inp" id="stz" type="number" step="0.5" value="3"></div>
+          </div>
+          <div class="row" style="margin-top:12px"><button class="btn pri liquid" id="scalc">Рассчитать</button></div>
+          <div id="sout" style="margin-top:12px"></div>
+        </div>
+        <div class="card"><h3>Признаки местности</h3>
+          <details><summary>Дороги и знаки</summary><div>Сторона движения, цвет и вид разметки, форма знаков, километровые столбики, цвет и форма номерных знаков.</div></details>
+          <details><summary>Инфраструктура</summary><div>Опоры ЛЭП и их форма, розетки на фото интерьера, колонки АЗС, форма гидрантов и люков, ограждения.</div></details>
+          <details><summary>Среда</summary><div>Растительность, цвет почвы, рельеф на горизонте, плотность застройки, архитектурные стили.</div></details>
+          <details><summary>Текст и язык</summary><div>Алфавит и язык вывесок, домен в адресах, формат телефонных номеров, валюта на ценниках.</div></details>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 SOCIAL ENGINEERING -->
+  <section class="view" id="v-se">
+    <p class="lead">Раздел для защиты и санкционированных учений: разбор подозрительных сообщений, оценка того, что о вашей организации видно снаружи, подготовка программы осведомлённости.</p>
+    <div class="split">
+      <div class="grid">
+        <div class="card"><h3>Проверка сообщения</h3><p class="sub">Вставьте письмо, SMS или сообщение из мессенджера. Быстрая проверка идёт локально, глубокий разбор делает ИИ.</p>
+          <textarea class="ta" id="msg" placeholder="Вставьте текст сообщения…"></textarea>
+          <div class="row" style="margin-top:10px"><button class="btn pri liquid" id="mscan">Проверить</button><button class="btn liquid" id="mai">Разобрать с ИИ</button></div>
+          <div id="mout" style="margin-top:14px"></div>
+        </div>
+        <div class="card"><h3>Приёмы воздействия и защита</h3>
+          <details><summary>Срочность и страх</summary><div>Признак: «аккаунт будет заблокирован через час». Защита: остановиться, проверить по независимому каналу, а не по контактам из сообщения.</div></details>
+          <details><summary>Авторитет</summary><div>Признак: «пишу от имени директора». Защита: подтверждение запросов на деньги и доступы вторым каналом, чёткая процедура согласований.</div></details>
+          <details><summary>Взаимность и просьба о небольшой услуге</summary><div>Признак: помощь вперёд, затем просьба о доступе. Защита: правило «ни одного действия с учётными данными по просьбе извне».</div></details>
+          <details><summary>Претекстинг</summary><div>Признак: правдоподобная легенда с реальными деталями из открытых источников. Защита: ограничивать публикуемые детали, проверять собеседника по внутреннему справочнику.</div></details>
+          <details><summary>Подмена домена и ссылок</summary><div>Признак: похожие символы, лишние поддомены, сокращатели. Защита: ввод адреса вручную, менеджер паролей не подставит данные на чужом домене.</div></details>
+        </div>
+        <div class="card"><h3>План санкционированного учения</h3><p class="sub">Отметьте, что уже согласовано. Без письменного разрешения владельца системы учения не проводятся.</p><div id="seplan"></div><div class="bar"><i id="sebar"></i></div></div>
+      </div>
+      <div class="card" id="chat3"></div>
+    </div>
+  </section>
+
+  <!-- 04 LEARN -->
+  <section class="view" id="v-learn">
+    <p class="lead">Треки от базового до военного OSINT и разбор реальных публичных расследований. Прогресс сохраняется в этом браузере.</p>
+    <div class="row" id="lvls" style="margin-bottom:16px"></div>
+    <div class="split">
+      <div class="card"><h3 id="trkT"></h3><p class="sub" id="trkD"></p><div class="bar"><i id="trkbar"></i></div><div class="sub" id="trkp" style="margin-bottom:6px"></div><div id="trk"></div></div>
+      <div class="card"><h3>Разборы реальных кейсов</h3><p class="sub">Только публичные расследования и методы проверки.</p><div id="cases"></div></div>
+    </div>
+  </section>
+
+  <!-- 06 CASE -->
+  <section class="view" id="v-case">
+    <p class="lead">Журнал расследования: записывайте находки с источником и уровнем уверенности, затем собирайте отчёт. Дело хранится в этом браузере. Чтобы перенести его на другое устройство, сохраните JSON и импортируйте там.</p>
+    <div class="split">
+      <div class="grid">
+        <div class="card"><h3>Дело</h3>
+          <span class="lbl" style="margin-top:10px">Название</span><input class="inp" id="ctitle" maxlength="200" placeholder="Например: проверка контрагента">
+          <span class="lbl" style="margin-top:12px">Законное основание и цель</span><textarea class="ta" id="cbasis" maxlength="2000" style="min-height:70px" placeholder="Зачем ведётся поиск и на каком основании"></textarea>
+        </div>
+        <div class="card"><h3>Новая находка</h3>
+          <span class="lbl" style="margin-top:10px">Что найдено</span><input class="inp" id="ftitle" maxlength="200" placeholder="Например: директор указан в реестре">
+          <span class="lbl" style="margin-top:12px">Источник (ссылка)</span><input class="inp" id="furl" maxlength="500" placeholder="https://…">
+          <span class="lbl" style="margin-top:12px">Заметка</span><textarea class="ta" id="fnote" style="min-height:70px" placeholder="Как проверено, что осталось неясным"></textarea>
+          <div class="row" style="margin-top:12px"><select class="sel sm" id="fconf" aria-label="Уверенность"><option value="high">Уверенность: высокая</option><option value="mid" selected>Уверенность: средняя</option><option value="low">Уверенность: низкая</option></select><button class="btn pri liquid" id="fadd">Добавить</button></div>
+        </div>
+        <div class="card"><h3>Отчёт и перенос</h3><p class="sub">Файл можно сохранить на устройство, браузер спросит подтверждение.</p>
+          <div class="row"><button class="btn pri liquid" id="xmd">Отчёт .md</button><button class="btn liquid" id="xhtml">Отчёт .html</button><button class="btn liquid" id="xjson">Дело .json</button><button class="btn liquid" id="ximp">Импорт .json</button><input type="file" id="ifile" accept=".json,application/json" hidden></div>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="card"><h3>Записи <span class="tag" id="ccount">0</span></h3><div id="flist" style="margin-top:12px"></div></div>
+        <div class="card"><h3>Скрипт для утилит</h3><p class="sub">Собирается из запросов (ник, e-mail, телефон, домен), добавленных в дело. Запускается у вас на компьютере. Сохраняется как .txt, переименуйте в .sh или .bat.</p>
+          <div class="row" style="margin-bottom:10px"><select class="sel sm" id="sos" aria-label="Система"><option value="sh">Linux / macOS (bash)</option><option value="bat">Windows (cmd)</option></select><button class="btn sm liquid" id="scopy">Копировать</button><button class="btn sm liquid" id="ssave">Сохранить .txt</button></div>
+          <textarea class="ta" id="sscript" readonly style="min-height:180px" spellcheck="false"></textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 VIZ -->
+  <section class="view" id="v-viz">
+    <p class="lead">Опишите связи текстом, и граф построится сам. Или отдайте ИИ-помощнику свои заметки, он разложит их на узлы, связи и события.</p>
+    <div class="split" style="grid-template-columns:minmax(0,1fr) minmax(0,1.5fr)">
+      <div class="grid">
+        <div class="card"><div class="row" style="margin-bottom:10px"><button class="chip on" data-t="graph">Граф</button><button class="chip" data-t="tl">Хронология</button></div>
+          <textarea class="ta" id="vsrc" style="min-height:220px" spellcheck="false"></textarea>
+          <div class="row" style="margin-top:10px"><button class="btn pri liquid" id="vbuild">Построить</button><button class="btn liquid" id="vex">Пример</button><button class="btn liquid" id="vpng">Сохранить PNG</button><button class="btn liquid" id="vcase">Добавить в дело</button></div>
+          <p class="sub" id="vhelp" style="margin-top:10px"></p>
+        </div>
+        <div class="card" id="chat5"></div>
+      </div>
+      <div class="grid">
+        <div class="vzwrap" id="vzwrap"><canvas id="cv"></canvas><div class="legend" id="lgd"></div><div class="detail hide" id="vdet"></div></div>
+        <div class="card hide" id="tlcard"><div class="tl" id="tlbox"></div></div>
+      </div>
+    </div>
+  </section>
+</main>
+</div>
+
+<div class="ov" id="ov">
+  <div class="ovbox">
+    <div class="row" style="flex-wrap:nowrap"><input class="inp big" id="cq" placeholder="Найти инструмент: sherlock, whois, спутник, реестр…" autocomplete="off" spellcheck="false"><button class="iconbtn liquid" id="cx" aria-label="Закрыть"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="row" id="ccats"></div>
+    <div class="sub mono" id="ccount"></div>
+    <div class="ovlist" id="clist"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+(function(){'use strict';
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ls={get(k,d){try{const v=localStorage.getItem('oh_'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('oh_'+k,JSON.stringify(v))}catch(e){}}};
+let tt;function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),1800)}
+async function copy(t){try{await navigator.clipboard.writeText(t);toast('Скопировано')}catch(e){toast('Выделите текст и скопируйте вручную')}}
+function md(src){const L=esc(src).split('\n');let o='',list=null;
+  const inl=t=>t.replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
+  const cl=()=>{if(list){o+='</'+list+'>';list=null}};
+  for(const l of L){let m;
+    if(m=l.match(/^\s*#{1,4}\s+(.*)/)){cl();o+='<h5>'+inl(m[1])+'</h5>'}
+    else if(m=l.match(/^\s*[-*•]\s+(.*)/)){if(list!=='ul'){cl();o+='<ul>';list='ul'}o+='<li>'+inl(m[1])+'</li>'}
+    else if(m=l.match(/^\s*\d+[.)]\s+(.*)/)){if(list!=='ol'){cl();o+='<ol>';list='ol'}o+='<li>'+inl(m[1])+'</li>'}
+    else if(!l.trim())cl();else{cl();o+='<p>'+inl(l)+'</p>'}}
+  cl();return o}
+const ext=u=>/^https:\/\//.test(u)?u:'#';
+
+/* liquid hover + ripple */
+document.addEventListener('pointermove',e=>{const el=e.target.closest&&e.target.closest('.liquid');if(!el)return;const r=el.getBoundingClientRect();el.style.setProperty('--x',(e.clientX-r.left)+'px');el.style.setProperty('--y',(e.clientY-r.top)+'px')},{passive:true});
+document.addEventListener('pointerdown',e=>{const el=e.target.closest&&e.target.closest('.liquid');if(!el)return;const r=el.getBoundingClientRect(),d=Math.max(r.width,r.height)*2.4,s=document.createElement('span');
+  s.className='rip';s.style.cssText='left:'+(e.clientX-r.left)+'px;top:'+(e.clientY-r.top)+'px;width:'+d+'px;height:'+d+'px';el.appendChild(s);el.classList.add('press');
+  setTimeout(()=>s.remove(),1000);addEventListener('pointerup',()=>el.classList.remove('press'),{once:true})});
+
+/* navigation */
+const VIEWS={search:'Поиск',geo:'GEOINT',se:'Соц. инженерия',learn:'Обучение',viz:'Визуализация',case:'Дело'},KEYS=Object.keys(VIEWS);
+const hooks={};
+function go(v){if(!VIEWS[v])v='search';
+  $$('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+v));
+  $$('#nav button').forEach(b=>b.setAttribute('aria-current',String(b.dataset.v===v)));
+  $('#ttl').innerHTML='<em>0'+(KEYS.indexOf(v)+1)+'&nbsp;</em>'+esc(VIEWS[v]);
+  if(location.hash!=='#'+v){try{location.hash=v}catch(e){}}
+  if(hooks[v])hooks[v]();window.scrollTo(0,0)}
+$('#nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b)go(b.dataset.v)});
+addEventListener('hashchange',()=>go(location.hash.slice(1)));
+
+/* catalog: name | category | url | description */
+const CATS={people:'Люди и ники',phone:'Телефоны',mail:'E-mail',soc:'Соцсети',net:'Сеть и домены',corp:'Реестры и компании',geo:'Карты и спутники',media:'Фото и видео',move:'Транспорт',frame:'Фреймворки',viz:'Визуализация',learn:'Обучение',se:'Защита от СИ'};
+const T=[
+['Sherlock','people','https://github.com/sherlock-project/sherlock','Поиск ника по сотням сайтов, консольная утилита'],
+['Maigret','people','https://github.com/soxoj/maigret','Сбор профилей по нику и отчёт о связях, консольная утилита'],
+['WhatsMyName','people','https://whatsmyname.app','Проверка ника по общей базе сайтов прямо в браузере'],
+['Social Analyzer','people','https://github.com/qeeqbox/social-analyzer','Анализ профиля по нику на множестве платформ'],
+['Blackbird','people','https://github.com/p1ngul1n0/blackbird','Поиск аккаунтов по нику и e-mail'],
+['Namechk','people','https://namechk.com','Занят ли ник на популярных сервисах'],
+['Holehe','mail','https://github.com/megadose/holehe','Проверка, на каких сервисах зарегистрирован e-mail'],
+['Epieos','mail','https://epieos.com','Открытые данные по e-mail и аккаунту Google'],
+['GHunt','mail','https://github.com/mxrch/GHunt','Открытая информация об аккаунте Google'],
+['EmailRep','mail','https://emailrep.io','Репутация и признаки адреса электронной почты'],
+['Hunter','mail','https://hunter.io','Адреса сотрудников компании по домену'],
+['Have I Been Pwned','mail','https://haveibeenpwned.com','Был ли адрес в известных утечках (проверка своих данных)'],
+['PhoneInfoga','phone','https://github.com/sundowndev/phoneinfoga','Разбор номера: страна, оператор, варианты для поиска'],
+['libphonenumber demo','phone','https://libphonenumber.appspot.com','Проверка формата и региона номера от Google'],
+['NumVerify','phone','https://numverify.com','API проверки номера и оператора'],
+['TGStat','soc','https://tgstat.com','Каталог и статистика Telegram-каналов'],
+['Telemetr','soc','https://telemetr.io','Аналитика Telegram-каналов и чатов'],
+['Instaloader','soc','https://instaloader.github.io','Выгрузка публичных данных Instagram'],
+['Toutatis','soc','https://github.com/megadose/toutatis','Данные об аккаунте Instagram'],
+['Social Searcher','soc','https://www.social-searcher.com','Поиск упоминаний по открытым соцсетям'],
+['X Advanced Search','soc','https://x.com/search-advanced','Расширенный поиск по публикациям X'],
+['Shodan','net','https://www.shodan.io','Поиск устройств и сервисов, видимых из интернета'],
+['Censys','net','https://search.censys.io','Хосты, сертификаты и сервисы в сети'],
+['SecurityTrails','net','https://securitytrails.com','История DNS и поддомены'],
+['crt.sh','net','https://crt.sh','Журнал сертификатов, поддомены по домену'],
+['urlscan.io','net','https://urlscan.io','Снимки и анализ страниц по ссылке или домену'],
+['VirusTotal','net','https://www.virustotal.com','Репутация файлов, доменов и адресов'],
+['ViewDNS','net','https://viewdns.info','Набор DNS-инструментов и reverse-поиск'],
+['DNSDumpster','net','https://dnsdumpster.com','Карта поддоменов и DNS-записей'],
+['BuiltWith','net','https://builtwith.com','Технологии сайта и связанные домены'],
+['Wayback Machine','net','https://web.archive.org','Архив версий сайтов'],
+['archive.today','net','https://archive.ph','Снимки страниц по запросу'],
+['who.is','net','https://who.is','WHOIS по домену'],
+['ipinfo.io','net','https://ipinfo.io','Геолокация и принадлежность IP'],
+['Hurricane Electric BGP','net','https://bgp.he.net','Сети, ASN и префиксы'],
+['AbuseIPDB','net','https://www.abuseipdb.com','Жалобы на IP-адрес'],
+['GreyNoise','net','https://viz.greynoise.io','Шум сканеров и контекст по IP'],
+['Netlas','net','https://netlas.io','Поиск по сетевым ресурсам'],
+['ZoomEye','net','https://www.zoomeye.org','Поисковик по открытым сервисам'],
+['theHarvester','net','https://github.com/laramies/theHarvester','Сбор почт, поддоменов и хостов, консольная утилита'],
+['Amass','net','https://github.com/owasp-amass/amass','Картирование поверхности атаки домена'],
+['OpenCorporates','corp','https://opencorporates.com','Крупнейшая открытая база компаний мира'],
+['OCCRP Aleph','corp','https://aleph.occrp.org','Документы и реестры для расследований'],
+['OpenSanctions','corp','https://www.opensanctions.org','Санкционные списки и публичные лица'],
+['ICIJ Offshore Leaks','corp','https://offshoreleaks.icij.org','База оффшорных структур из расследований ICIJ'],
+['OpenOwnership','corp','https://register.openownership.org','Бенефициарные владельцы компаний'],
+['ЕГРЮЛ (ФНС)','corp','https://egrul.nalog.ru','Выписки по юрлицам и ИП'],
+['Rusprofile','corp','https://www.rusprofile.ru','Карточки российских компаний и связи'],
+['Картотека арбитражных дел','corp','https://kad.arbitr.ru','Дела арбитражных судов'],
+['Федресурс','corp','https://fedresurs.ru','Сведения о банкротствах и обязательствах'],
+['Госзакупки','corp','https://zakupki.gov.ru','Контракты и поставщики'],
+['Companies House','corp','https://find-and-update.company-information.service.gov.uk','Реестр компаний Великобритании'],
+['SEC EDGAR','corp','https://www.sec.gov/edgar/search/','Документы эмитентов США'],
+['Google Earth','geo','https://earth.google.com','Спутниковые снимки и 3D'],
+['Sentinel Hub EO Browser','geo','https://apps.sentinel-hub.com/eo-browser/','Свежие снимки Sentinel и Landsat'],
+['Copernicus Browser','geo','https://dataspace.copernicus.eu/browser/','Данные программы Copernicus'],
+['Google Earth Timelapse','geo','https://earthengine.google.com/timelapse/','Многолетняя динамика местности'],
+['Mapillary','geo','https://www.mapillary.com','Уличные фото от пользователей'],
+['OpenStreetMap','geo','https://www.openstreetmap.org','Открытая карта мира'],
+['Overpass Turbo','geo','https://overpass-turbo.eu','Запросы к данным OSM'],
+['SunCalc','geo','https://www.suncalc.org','Положение Солнца и тени в любой точке'],
+['PeakFinder','geo','https://www.peakfinder.com','Опознание гор по панораме'],
+['Wikimapia','geo','https://wikimapia.org','Описание объектов на карте'],
+['Яндекс Карты','geo','https://yandex.ru/maps','Панорамы и подробные карты СНГ'],
+['Google Maps','geo','https://maps.google.com','Карты и Street View'],
+['Bing Maps','geo','https://www.bing.com/maps','Карты и аэроснимки Bing'],
+['NASA FIRMS','geo','https://firms.modaps.eosdis.nasa.gov/map/','Очаги пожаров и тепловые аномалии'],
+['Zoom Earth','geo','https://zoom.earth','Свежие спутниковые снимки и погода'],
+['Windy','geo','https://www.windy.com','Ветер, облачность и погода по часам'],
+['Liveuamap','geo','https://liveuamap.com','Карта событий конфликтов'],
+['WiGLE','geo','https://wigle.net','Карта Wi-Fi и сотовых сетей'],
+['Google Lens','media','https://lens.google.com','Поиск по картинке и объектам'],
+['TinEye','media','https://tineye.com','Обратный поиск изображений'],
+['Яндекс Картинки','media','https://yandex.com/images/','Обратный поиск, сильный по СНГ'],
+['Bing Visual Search','media','https://www.bing.com/visualsearch','Визуальный поиск Bing'],
+['FotoForensics','media','https://fotoforensics.com','Анализ уровней ошибок JPEG'],
+['Forensically','media','https://29a.ch/photo-forensics/','Набор приёмов анализа изображений'],
+['Jeffrey’s EXIF Viewer','media','https://exif.regex.info/exif.cgi','Разбор метаданных по файлу или ссылке'],
+['ExifTool','media','https://exiftool.org','Эталон чтения метаданных, консольная утилита'],
+['Metadata2Go','media','https://www.metadata2go.com','Метаданные файлов в браузере'],
+['InVID-WeVerify','media','https://www.invid-project.eu/tools-and-services/invid-verification-plugin/','Проверка видео и кадров'],
+['FFmpeg','media','https://ffmpeg.org','Нарезка кадров и обработка видео'],
+['Flightradar24','move','https://www.flightradar24.com','Самолёты онлайн'],
+['ADS-B Exchange','move','https://globe.adsbexchange.com','Самолёты без фильтрации'],
+['FlightAware','move','https://flightaware.com','Рейсы и история полётов'],
+['OpenSky Network','move','https://opensky-network.org','Открытые данные ADS-B'],
+['MarineTraffic','move','https://www.marinetraffic.com','Суда онлайн'],
+['VesselFinder','move','https://www.vesselfinder.com','Суда и порты'],
+['OpenRailwayMap','move','https://www.openrailwaymap.org','Железные дороги по данным OSM'],
+['OSINT Framework','frame','https://osintframework.com','Дерево ссылок по типам данных'],
+['Bellingcat Toolkit','frame','https://bellingcat.gitbook.io/toolkit','Каталог инструментов Bellingcat'],
+['IntelTechniques Tools','frame','https://inteltechniques.com/tools/','Подборка поисковых форм'],
+['Awesome OSINT','frame','https://github.com/jivoi/awesome-osint','Большой список инструментов на GitHub'],
+['SpiderFoot','frame','https://github.com/smicallef/spiderfoot','Автоматизация сбора данных по цели'],
+['Recon-ng','frame','https://github.com/lanmaster53/recon-ng','Модульный фреймворк разведки'],
+['Maltego','frame','https://www.maltego.com','Графы связей и трансформации'],
+['Gephi','viz','https://gephi.org','Анализ и визуализация больших графов'],
+['Kumu','viz','https://kumu.io','Карты связей и систем'],
+['Neo4j','viz','https://neo4j.com','Графовая база данных'],
+['Cytoscape','viz','https://cytoscape.org','Сетевые графы и биоинформатика'],
+['TimelineJS','viz','https://timeline.knightlab.com','Интерактивные хронологии'],
+['Flourish','viz','https://flourish.studio','Красивые графики и анимации'],
+['Datawrapper','viz','https://www.datawrapper.de','Быстрые графики и карты'],
+['Kepler.gl','viz','https://kepler.gl','Большие геоданные на карте'],
+['uMap','viz','https://umap.openstreetmap.fr','Собственные карты на данных OSM'],
+['Mermaid','viz','https://mermaid.js.org','Диаграммы из текста'],
+['Excalidraw','viz','https://excalidraw.com','Быстрые схемы от руки'],
+['diagrams.net','viz','https://www.diagrams.net','Схемы и диаграммы'],
+['Bellingcat','learn','https://www.bellingcat.com','Расследования и руководства'],
+['Trace Labs','learn','https://www.tracelabs.org','Соревнования по поиску пропавших людей'],
+['OSINT Curious','learn','https://osintcurio.us','Материалы и подкаст сообщества'],
+['Week in OSINT','learn','https://sector035.nl','Еженедельный обзор методов'],
+['OSINT Dojo','learn','https://www.osintdojo.com','Тренажёры и задания'],
+['My OSINT Training','learn','https://my-osint.training','Курсы по OSINT'],
+['Gophish','se','https://getgophish.com','Платформа для санкционированных учений по фишингу'],
+['PhishTank','se','https://phishtank.org','База проверенных фишинговых ссылок'],
+['URLhaus','se','https://urlhaus.abuse.ch','Вредоносные ссылки'],
+['Safe Browsing Check','se','https://transparencyreport.google.com/safe-browsing/search','Проверка сайта в базе Google'],
+['MITRE ATT&CK: Phishing','se','https://attack.mitre.org/techniques/T1566/','Описание техники и способы защиты']
+];
+const favs=new Set(ls.get('favs',[]));let ccat='all';
+function renderCat(){const q=$('#cq').value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  let rows=T.map(t=>{const hay=(t[0]+' '+t[3]+' '+CATS[t[1]]).toLowerCase();let s=0;
+    for(const w of q){if(t[0].toLowerCase().startsWith(w))s+=4;else if(t[0].toLowerCase().includes(w))s+=3;else if(hay.includes(w))s+=1;else{s=-1;break}}
+    return{t,s}}).filter(r=>r.s>=0&&(ccat==='all'||(ccat==='fav'?favs.has(r.t[0]):r.t[1]===ccat)));
+  rows.sort((a,b)=>b.s-a.s||(favs.has(b.t[0])-favs.has(a.t[0])));
+  $('#ccount').textContent=rows.length+' из '+T.length+' в каталоге';
+  $('#clist').innerHTML=rows.map(({t})=>'<div class="item liquid"><div style="min-width:0"><a href="'+esc(ext(t[2]))+'" target="_blank" rel="noopener noreferrer"><b>'+esc(t[0])+'</b></a><p>'+esc(t[3])+'</p></div><div class="meta"><span class="tag">'+esc(CATS[t[1]])+'</span><button class="star'+(favs.has(t[0])?' on':'')+'" data-n="'+esc(t[0])+'" aria-label="В избранное">★</button></div></div>').join('')||'<div class="note">Ничего не найдено. Попробуйте другое слово.</div>'}
+function buildCats(){$('#ccats').innerHTML=[['all','Все'],['fav','★ Избранное']].concat(Object.entries(CATS)).map(([k,v])=>'<button class="chip'+(k===ccat?' on':'')+'" data-c="'+k+'">'+esc(v)+'</button>').join('')}
+function openCat(){$('#ov').classList.add('on');buildCats();renderCat();setTimeout(()=>$('#cq').focus(),60)}
+function closeCat(){$('#ov').classList.remove('on')}
+$('#lupa').addEventListener('click',openCat);$('#cx').addEventListener('click',closeCat);
+$('#ov').addEventListener('click',e=>{if(e.target.id==='ov')closeCat()});
+$('#cq').addEventListener('input',renderCat);
+$('#ccats').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;ccat=b.dataset.c;buildCats();renderCat()});
+$('#clist').addEventListener('click',e=>{const s=e.target.closest('.star');if(!s)return;const n=s.dataset.n;favs.has(n)?favs.delete(n):favs.add(n);ls.set('favs',[...favs]);renderCat()});
+addEventListener('keydown',e=>{if(e.key==='Escape')closeCat();if(e.key==='/'&&!/INPUT|TEXTAREA/.test((document.activeElement||{}).tagName)){e.preventDefault();openCat()}});
+
+/* ---------- AI helper (sample capability) ---------- */
+let SAMPLE=null,LIM=null;const chats=[];
+const ERR={not_granted:'ИИ не разрешён для этой страницы.',sampling_disabled:'ИИ недоступен для вашего аккаунта.',not_declared:'ИИ недоступен.',rate_limited:'Слишком часто или исчерпан лимит. Попробуйте позже.',refused:'ИИ отказался отвечать на этот запрос. Переформулируйте его.',session_expired:'Нужно войти заново.',image_rejected:'Фото не подошло. Попробуйте другой файл.',upstream_error:'Сбой соединения. Повторите вручную.',empty_completion:'Пустой ответ. Уточните запрос.',invalid_json:'ИИ вернул неразборчивые данные. Попробуйте ещё раз.',prompt_too_large:'Слишком много текста. Сократите ввод.'};
+const errText=e=>ERR[e&&e.code]||'Не получилось. Повторите позже.';
+function mkChat(host,cfg){
+  const st={turns:[],busy:false,ctl:null};
+  host.innerHTML='<div class="aihead"><span class="dot"></span><div><h3 style="margin:0">'+esc(cfg.title)+'</h3><div class="sub">'+esc(cfg.sub)+'</div></div></div><div class="chat"><div class="log"></div><div class="row chips"></div><textarea class="ta" style="min-height:64px" placeholder="'+esc(cfg.ph||'Задайте вопрос…')+'"></textarea><div class="row"><button class="btn pri liquid send">Спросить</button><button class="btn liquid stop hide">Стоп</button>'+(cfg.extra||'')+'</div></div>';
+  const log=$('.log',host),ta=$('.ta',host),send=$('.send',host),stop=$('.stop',host);
+  $('.chips',host).innerHTML=(cfg.chips||[]).map(c=>'<button class="chip">'+esc(c)+'</button>').join('');
+  const bubble=(c,t)=>{const d=document.createElement('div');d.className='msg '+c;d.innerHTML=t;log.appendChild(d);log.scrollTop=log.scrollHeight;return d};
+  function off(){host.querySelector('.aihead').classList.add('off');log.innerHTML='<div class="note">ИИ-помощник работает, когда страница открыта в Claude. Остальные функции доступны и без него.</div>';ta.disabled=true;send.disabled=true}
+  async function ask(text){
+    if(!SAMPLE||st.busy||!text.trim())return;st.busy=true;send.classList.add('hide');stop.classList.remove('hide');
+    bubble('u',esc(text).replace(/\n/g,'<br>'));const b=bubble('a','<span class="think">Думаю…</span>');
+    const ctx=cfg.ctx?cfg.ctx():'';const input=[{role:'user',content:cfg.rules+(ctx?'\n\n[Контекст инструмента]\n'+ctx:'')}].concat(st.turns.slice(-10),[{role:'user',content:text}]);
+    const opt={cache:false,modelTier:cfg.tier||'default',onText:u=>{b.innerHTML=md(u.text);log.scrollTop=log.scrollHeight}};
+    st.ctl=new AbortController();opt.signal=st.ctl.signal;
+    if(cfg.images&&LIM&&LIM.images){try{const im=await cfg.images();if(im&&im.length)opt.images=im}catch(e){}}
+    try{const r=await SAMPLE(input,opt);st.turns.push({role:'user',content:text},{role:'assistant',content:r.text});b.innerHTML=md(r.text)+(r.truncated?'<p class="sub">Ответ обрезан. Попросите продолжить.</p>':'')}
+    catch(e){if(e&&e.code==='cancelled'){if(!e.text)b.remove()}else b.innerHTML=(e&&e.text?md(e.text):'')+'<p class="sub">'+esc(errText(e))+'</p>'}
+    st.busy=false;st.ctl=null;send.classList.remove('hide');stop.classList.add('hide')}
+  send.addEventListener('click',()=>{const t=ta.value;ta.value='';ask(t)});
+  ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();send.click()}});
+  stop.addEventListener('click',()=>st.ctl&&st.ctl.abort());
+  $('.chips',host).addEventListener('click',e=>{const c=e.target.closest('.chip');if(c)ask(c.textContent)});
+  const api={host,ask,off,ready(){if(!SAMPLE)off()}};chats.push(api);return api}
+(async function(){try{if(window.claude&&window.claude.use){SAMPLE=await window.claude.use('sample');if(SAMPLE){try{LIM=await SAMPLE.limits()}catch(e){}}}}catch(e){SAMPLE=null}
+  chats.forEach(c=>c.ready());if(SAMPLE){window.__ai=1}})();
+
+/* ---------- 01 SEARCH ---------- */
+const TYPES={auto:'Авто',phone:'Телефон',email:'E-mail',user:'Ник',domain:'Домен',ip:'IP',name:'Имя / компания'};let qtype='auto';
+$('#qtypes').innerHTML=Object.entries(TYPES).map(([k,v])=>'<button class="chip'+(k===qtype?' on':'')+'" data-k="'+k+'">'+v+'</button>').join('');
+function detect(q){q=q.trim();if(!q)return null;
+  if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(q))return'email';
+  if(/^(\d{1,3}\.){3}\d{1,3}$/.test(q))return'ip';
+  const dg=q.replace(/\D/g,'');
+  if(/^[+\d][\d\s().-]{6,}$/.test(q)&&dg.length>=7&&dg.length<=15)return'phone';
+  if(/^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(\/.*)?$/i.test(q))return'domain';
+  if(/^@?[\w.-]{3,32}$/.test(q))return'user';
+  return'name'}
+const CC={'998':'Узбекистан','995':'Грузия','994':'Азербайджан','996':'Кыргызстан','992':'Таджикистан','380':'Украина','375':'Беларусь','374':'Армения','373':'Молдова','372':'Эстония','371':'Латвия','370':'Литва','972':'Израиль','971':'ОАЭ','86':'Китай','90':'Турция','91':'Индия','49':'Германия','48':'Польша','44':'Великобритания','39':'Италия','34':'Испания','33':'Франция','7':'Россия / Казахстан','1':'США / Канада'};
+function phoneInfo(q){let d=q.replace(/\D/g,'');
+  if(d.length===11&&d[0]==='8')d='7'+d.slice(1);else if(d.length===10&&d[0]==='9')d='7'+d;
+  let cc='',cn='не определён';for(const n of[3,2,1]){const p=d.slice(0,n);if(CC[p]){cc=p;cn=CC[p];break}}
+  const v=['+'+d];if(cc==='7'&&d.length===11){const a=d.slice(1,4),b=d.slice(4,7),c=d.slice(7,9),e=d.slice(9);
+    v.push('+7 '+a+' '+b+'-'+c+'-'+e,'8 ('+a+') '+b+'-'+c+'-'+e,'8'+d.slice(1),'7'+d.slice(1),'+7 ('+a+') '+b+' '+c+' '+e)}
+  else v.push('+'+d.replace(/(\d{1,3})(\d{3})(\d+)/,'$1 $2 $3'));
+  return{d,cc,cn,v,ru:cc==='7'&&d.length===11,mob:cc==='7'&&d.length===11&&d[1]==='9'}}
+const G=q=>'https://www.google.com/search?q='+encodeURIComponent(q),Y=q=>'https://yandex.com/search/?text='+encodeURIComponent(q);
+const sq=s=>"'"+String(s).replace(/'/g,"'\\''")+"'";
+function plan(t,raw){const q=raw.trim(),L=[],C=[],D=[],I=[];const e=encodeURIComponent;
+  if(t==='phone'){const p=phoneInfo(q);I.push(['Нормализованный','+'+p.d],['Страна (по коду)',p.cn]);if(p.ru)I.push(['Тип',p.mob?'мобильный (код 9xx)':'городской или другой']);I.push(['Цифр',String(p.d.length)]);I.push(['Варианты записи',p.v.join(' · ')]);
+    const or=p.v.map(x=>'"'+x+'"').join(' OR ');
+    L.push({t:'Google по всем вариантам',d:'Объявления, форумы, каталоги',u:G(or)},{t:'Яндекс по всем вариантам',d:'Сильнее по СНГ',u:Y(or)},{t:'Проверка в libphonenumber',d:'Формат и регион',u:'https://libphonenumber.appspot.com'},{t:'wa.me',d:'Откроет чат WhatsApp, ничего не отправляет',u:'https://wa.me/'+p.d});
+    C.push(['phoneinfoga scan -n "+'+p.d+'"','Разбор номера']);D.push(or,'"'+p.v[1||0]+'" (отзывы OR объявление OR контакты)')}
+  else if(t==='email'){const lp=q.split('@')[0];I.push(['Локальная часть',lp],['Домен',q.split('@')[1]]);
+    L.push({t:'EmailRep',d:'Репутация адреса',u:'https://emailrep.io/'+e(q)},{t:'Epieos',d:'Открытые данные по адресу',u:'https://epieos.com/?q='+e(q)+'&t=email'},{t:'Google',d:'Точное совпадение',u:G('"'+q+'"')},{t:'Яндекс',d:'Точное совпадение',u:Y('"'+q+'"')},{t:'Have I Been Pwned',d:'Проверка утечек, только для своих адресов',u:'https://haveibeenpwned.com'},{t:'Поиск ника «'+lp+'»',d:'Тот же логин на других сайтах',u:G('"'+lp+'"')});
+    C.push(['holehe '+sq(q),'На каких сервисах зарегистрирован'],['ghunt email '+sq(q),'Данные аккаунта Google'],['sherlock '+sq(lp),'Тот же логин как ник']);
+    D.push('"'+q+'"','intext:"'+q+'" (резюме OR CV OR контакты)','site:github.com "'+q+'"')}
+  else if(t==='user'){const u=q.replace(/^@/,'');I.push(['Ник',u],['Длина',String(u.length)]);
+    const eu=e(u);L.push({t:'GitHub',d:'Профиль',u:'https://github.com/'+eu},{t:'Reddit',d:'Профиль',u:'https://www.reddit.com/user/'+eu},{t:'Telegram',d:'Публичная страница t.me',u:'https://t.me/'+eu},{t:'X',d:'Профиль',u:'https://x.com/'+eu},{t:'Instagram',d:'Профиль',u:'https://www.instagram.com/'+eu+'/'},{t:'TikTok',d:'Профиль',u:'https://www.tiktok.com/@'+eu},{t:'WhatsMyName',d:'Проверка по общей базе',u:'https://whatsmyname.app'},{t:'Google',d:'Ник в кавычках',u:G('"'+u+'"')});
+    C.push(['sherlock '+sq(u),'Поиск по сотням сайтов'],['maigret '+sq(u),'Досье и отчёт'],['blackbird -u '+sq(u),'Альтернативный поиск'],['social-analyzer --username '+sq(u),'Анализ профилей']);
+    D.push('"'+u+'"','inurl:'+u,'"'+u+'" (профиль OR profile)')}
+  else if(t==='domain'){let h=q.replace(/^https?:\/\//i,'').split('/')[0].replace(/^www\./,'').toLowerCase();I.push(['Домен',h],['Зона','.'+h.split('.').pop()]);const eh=e(h);
+    L.push({t:'crt.sh',d:'Сертификаты и поддомены',u:'https://crt.sh/?q='+eh},{t:'urlscan.io',d:'Снимки и связи',u:'https://urlscan.io/search/#'+eh},{t:'Wayback Machine',d:'История сайта',u:'https://web.archive.org/web/*/'+h+'*'},{t:'who.is',d:'WHOIS',u:'https://who.is/whois/'+eh},{t:'VirusTotal',d:'Репутация домена',u:'https://www.virustotal.com/gui/domain/'+eh},{t:'SecurityTrails',d:'DNS и история',u:'https://securitytrails.com/domain/'+eh+'/dns'},{t:'Shodan',d:'Сервисы на домене',u:'https://www.shodan.io/search?query='+eh},{t:'ViewDNS',d:'DNS-записи',u:'https://viewdns.info/dnsrecord/?domain='+eh});
+    C.push(['amass enum -passive -d '+sq(h),'Поддомены из открытых источников'],['theHarvester -d '+sq(h)+' -b crtsh','Почты и хосты']);
+    D.push('site:'+h+' filetype:pdf','site:'+h+' -www','"'+h+'" -site:'+h,'site:linkedin.com/company "'+h+'"')}
+  else if(t==='ip'){I.push(['Адрес',q],['Класс',/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.)/.test(q)?'частный (в интернете не ищется)':'публичный']);
+    L.push({t:'ipinfo.io',d:'Принадлежность и гео',u:'https://ipinfo.io/'+e(q)},{t:'Shodan',d:'Открытые сервисы',u:'https://www.shodan.io/host/'+e(q)},{t:'Censys',d:'Хост и сертификаты',u:'https://search.censys.io/hosts/'+e(q)},{t:'VirusTotal',d:'Репутация',u:'https://www.virustotal.com/gui/ip-address/'+e(q)},{t:'AbuseIPDB',d:'Жалобы',u:'https://www.abuseipdb.com/check/'+e(q)},{t:'Hurricane Electric',d:'ASN и префикс',u:'https://bgp.he.net/ip/'+e(q)});D.push('"'+q+'"')}
+  else{I.push(['Запрос',q],['Слов',String(q.split(/\s+/).length)]);
+    L.push({t:'OpenCorporates',d:'Компании мира',u:'https://opencorporates.com/companies?q='+e(q)},{t:'OCCRP Aleph',d:'Документы и реестры',u:'https://aleph.occrp.org/search?q='+e(q)},{t:'OpenSanctions',d:'Санкции и публичные лица',u:'https://www.opensanctions.org/search/?q='+e(q)},{t:'ICIJ Offshore Leaks',d:'Оффшорные структуры',u:'https://offshoreleaks.icij.org/search?q='+e(q)},{t:'Rusprofile',d:'Российские компании',u:'https://www.rusprofile.ru/search?query='+e(q)},{t:'SEC EDGAR',d:'Эмитенты США',u:'https://www.sec.gov/edgar/search/#/q='+e(q)},{t:'Companies House',d:'Компании Великобритании',u:'https://find-and-update.company-information.service.gov.uk/search?q='+e(q)},{t:'Google',d:'Точная фраза',u:G('"'+q+'"')});
+    D.push('"'+q+'"','"'+q+'" site:linkedin.com','"'+q+'" (директор OR основатель OR CEO)','"'+q+'" filetype:pdf')}
+  return{I,L,C,D}}
+let curQ={t:null,q:''};
+function renderSearch(){const raw=$('#q').value,box=$('#res');const det=detect(raw);const t=qtype==='auto'?det:qtype;curQ={t,q:raw.trim()};
+  if(!raw.trim()||!t){box.innerHTML='<div class="card liquid"><h3>Готово к поиску</h3><p>Начните вводить запрос. Для примера нажмите на любой из вариантов ниже.</p><div class="row">'+['+7 999 123-45-67','name@example.com','johndoe','example.com','8.8.8.8','ООО Ромашка'].map(x=>'<button class="chip" data-ex="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div></div>';return}
+  const p=plan(t,raw);
+  box.innerHTML='<div class="card liquid"><h3>Определено: '+esc(TYPES[t])+(qtype==='auto'?'':' (выбрано вручную)')+'</h3><div class="scroll"><table class="tbl">'+p.I.map(r=>'<tr><th>'+esc(r[0])+'</th><td>'+esc(r[1])+'</td></tr>').join('')+'</table></div><div class="row" style="margin-top:12px"><button class="btn sm liquid" id="addq">Добавить в дело</button></div></div>'
+  +'<div class="card"><h3>Быстрые ссылки</h3><p class="sub">Открываются в новой вкладке на сторонних сервисах.</p><div class="links">'+p.L.map(l=>'<a class="lk liquid" href="'+esc(ext(l.u))+'" target="_blank" rel="noopener noreferrer"><b>'+esc(l.t)+' ↗</b><span>'+esc(l.d)+'</span></a>').join('')+'</div></div>'
+  +(p.C.length?'<div class="card"><h3>Команды для терминала</h3><p class="sub">Запускаются у вас на компьютере. Установите утилиты заранее.</p>'+p.C.map(c=>'<div class="cmd"><code>'+esc(c[0])+'</code><small>'+esc(c[1])+'</small><button class="btn sm liquid" data-copy="'+esc(c[0])+'">Копировать</button></div>').join('')+'</div>':'')
+  +(p.D.length?'<div class="card"><h3>Поисковые запросы</h3>'+p.D.map(d=>'<div class="cmd"><code>'+esc(d)+'</code><a class="btn sm liquid" href="'+esc(G(d))+'" target="_blank" rel="noopener noreferrer">Google</a><button class="btn sm liquid" data-copy="'+esc(d)+'">Копировать</button></div>').join('')+'</div>':'')}
+let qd;$('#q').addEventListener('input',()=>{clearTimeout(qd);qd=setTimeout(renderSearch,160)});
+$('#qtypes').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;qtype=b.dataset.k;$$('#qtypes .chip').forEach(c=>c.classList.toggle('on',c===b));renderSearch()});
+document.addEventListener('click',e=>{const c=e.target.closest('[data-copy]');if(c)copy(c.dataset.copy);const x=e.target.closest('[data-ex]');if(x){$('#q').value=x.dataset.ex;renderSearch()}});
+mkChat($('#chat1'),{title:'ИИ-аналитик',sub:'План поиска, проверка фактов, оценка достоверности',tier:'complex',ph:'Например: как проверить компанию и её владельцев?',
+  chips:['Составь план поиска по текущему запросу','Как проверить достоверность найденного?','Какие инструменты взять для ника?'],
+  rules:'Ты ИИ-аналитик OSINT внутри инструмента OSINT Hub. Помогай строить план поиска по открытым источникам: какие данные искать, в каком порядке, какие инструменты брать (Sherlock, Maigret, Holehe, PhoneInfoga, реестры, соцсети, WHOIS, архивы), как сопоставлять и проверять факты, как оценивать достоверность (высокая, средняя, низкая) и записывать источники. Работай только с законными открытыми источниками. Не помогай получать закрытые данные, взламывать аккаунты, обходить защиту или следить за частным лицом без законного основания: в таком случае коротко назови границу и предложи законную альтернативу. Не выдумывай факты и ссылки; если не уверен, скажи об этом. Отвечай по-русски, структурно и коротко.',
+  ctx:()=>curQ.q?'Текущий запрос пользователя: «'+curQ.q+'», определённый тип: '+(TYPES[curQ.t]||'неизвестно'):'Запрос пока не введён.'});
+hooks.search=renderSearch;
+
+/* ---------- 02 GEOINT ---------- */
+const geo={el:null,url:null,kind:null,rows:[],gps:null,name:''};
+function readTiff(v,b){const le=v.getUint16(b)===0x4949,g16=o=>v.getUint16(b+o,le),g32=o=>v.getUint32(b+o,le),SZ={1:1,2:1,3:2,4:4,5:8,7:1,9:4,10:8};
+  function val(type,cnt,vo){const sz=(SZ[type]||1)*cnt,off=sz>4?g32(vo):vo;
+    if(type===2){let s='';for(let i=0;i<cnt-1;i++){const c=v.getUint8(b+off+i);if(!c)break;s+=String.fromCharCode(c)}return s.trim()}
+    const out=[];for(let i=0;i<cnt;i++){
+      if(type===3)out.push(g16(off+i*2));else if(type===4)out.push(g32(off+i*4));
+      else if(type===5){const d=g32(off+i*8+4);out.push(d?g32(off+i*8)/d:0)}
+      else if(type===10){const d=v.getInt32(b+off+i*8+4,le);out.push(d?v.getInt32(b+off+i*8,le)/d:0)}
+      else if(type===9)out.push(v.getInt32(b+off+i*4,le));else out.push(v.getUint8(b+off+i))}
+    return cnt===1?out[0]:out}
+  function ifd(o){const r={},n=g16(o);for(let i=0;i<n&&i<200;i++){const e=o+2+i*12,tag=g16(e),type=g16(e+2),cnt=g32(e+4);if(cnt>64&&type!==2)continue;try{r[tag]=val(type,cnt,e+8)}catch(x){}}return r}
+  const i0=ifd(g32(4));let ex={},gp={};
+  if(i0[0x8769])try{ex=ifd(i0[0x8769])}catch(e){}
+  if(i0[0x8825])try{gp=ifd(i0[0x8825])}catch(e){}
+  return{i0,ex,gp}}
+function parseExif(buf){try{const v=new DataView(buf);if(v.getUint16(0)!==0xFFD8)return null;let o=2;
+  while(o<v.byteLength-4){const m=v.getUint16(o);if((m&0xFF00)!==0xFF00||m===0xFFDA)break;const len=v.getUint16(o+2);
+    if(m===0xFFE1&&v.getUint32(o+4)===0x45786966)return readTiff(v,o+10);o+=2+len}}catch(e){}return null}
+const dms=(a,r)=>{if(!Array.isArray(a)||a.length<3)return null;const d=a[0]+a[1]/60+a[2]/3600;return/^[SW]/i.test(r||'')?-d:d};
+const ORI={1:'нормальная',3:'180°',6:'90° по часовой',8:'90° против часовой'};
+const fmtSize=n=>n>1e6?(n/1e6).toFixed(1)+' МБ':Math.round(n/1e3)+' КБ';
+function setStage(){const s=$('#stage');s.classList.remove('hide');$('#filters').classList.remove('hide');applyFx()}
+function applyFx(){const el=geo.el;if(!el)return;const b=$('#fb').value,c=$('#fc').value,s=$('#fs').value,z=$('#fz').value;
+  $('#fbv').textContent=b;$('#fcv').textContent=c;$('#fsv').textContent=s;$('#fzv').textContent=z;
+  el.style.filter='brightness('+b+'%) contrast('+c+'%) saturate('+s+'%)'+(fx.inv?' invert(1)':'')+(fx.gray?' grayscale(1)':'');
+  el.style.maxWidth=z>100?'none':'100%';el.style.width=z>100?z+'%':'';}
+const fx={inv:false,gray:false};
+['#fb','#fc','#fs','#fz'].forEach(i=>$(i).addEventListener('input',applyFx));
+$('#finv').addEventListener('click',()=>{fx.inv=!fx.inv;applyFx()});$('#fgray').addEventListener('click',()=>{fx.gray=!fx.gray;applyFx()});
+$('#freset').addEventListener('click',()=>{$('#fb').value=100;$('#fc').value=100;$('#fs').value=100;$('#fz').value=100;fx.inv=fx.gray=false;applyFx()});
+function showMeta(rows,gps){geo.rows=rows;geo.gps=gps;$('#metaHint').classList.add('hide');
+  $('#meta').innerHTML=rows.map(r=>'<tr><th>'+esc(r[0])+'</th><td>'+esc(r[1])+'</td></tr>').join('');
+  const gl=$('#gpsLinks');if(gps){const a=gps.lat.toFixed(6),o=gps.lon.toFixed(6);gl.classList.remove('hide');
+    gl.innerHTML='<a class="btn sm liquid" target="_blank" rel="noopener noreferrer" href="https://www.openstreetmap.org/?mlat='+a+'&mlon='+o+'#map=17/'+a+'/'+o+'">OpenStreetMap ↗</a><a class="btn sm liquid" target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps?q='+a+','+o+'&t=k">Google ↗</a><a class="btn sm liquid" target="_blank" rel="noopener noreferrer" href="https://yandex.ru/maps/?pt='+o+','+a+'&z=17&l=sat">Яндекс ↗</a><button class="btn sm liquid" data-copy="'+a+', '+o+'">Копировать</button>';
+    $('#sla').value=a;$('#slo').value=o}else gl.classList.add('hide')}
+async function loadFile(f){if(!f)return;if(geo.url)URL.revokeObjectURL(geo.url);geo.url=URL.createObjectURL(f);geo.name=f.name;
+  const isV=/^video\//.test(f.type),stage=$('#stage');stage.innerHTML='';geo.kind=isV?'video':'image';
+  const el=document.createElement(isV?'video':'img');if(isV){el.controls=true;el.muted=true;el.playsInline=true;el.preload='metadata'}el.src=geo.url;stage.appendChild(el);geo.el=el;
+  $('#vidbar').classList.toggle('hide',!isV);setStage();
+  const rows=[['Файл',f.name],['Тип',f.type||'неизвестен'],['Размер',fmtSize(f.size)]];
+  if(f.lastModified)rows.push(['Изменён (файл)',new Date(f.lastModified).toLocaleString('ru-RU')]);
+  showMeta(rows,null);let gps=null;
+  const dim=()=>new Promise(r=>{if(isV)el.addEventListener('loadedmetadata',r,{once:true});else if(el.complete&&el.naturalWidth)r();else el.addEventListener('load',r,{once:true});setTimeout(r,2500)});
+  await dim();rows.push(['Размер кадра',(el.naturalWidth||el.videoWidth||'?')+' × '+(el.naturalHeight||el.videoHeight||'?')]);
+  if(isV&&isFinite(el.duration))rows.push(['Длительность',el.duration.toFixed(1)+' с']);
+  if(f.size<150e6){try{const buf=await f.arrayBuffer();
+    try{const h=await crypto.subtle.digest('SHA-256',buf);rows.push(['SHA-256',[...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join('')])}catch(e){}
+    if(!isV){const x=parseExif(buf);if(x){const{i0,ex,gp}=x;
+      const cam=[i0[0x010F],i0[0x0110]].filter(Boolean).join(' ');if(cam)rows.push(['Камера',cam]);
+      if(ex[0xA434])rows.push(['Объектив',ex[0xA434]]);if(i0[0x0131])rows.push(['ПО',i0[0x0131]]);
+      const dt=ex[0x9003]||i0[0x0132];if(dt)rows.push(['Дата съёмки',dt]);
+      if(ex[0x829A])rows.push(['Выдержка',ex[0x829A]<1?'1/'+Math.round(1/ex[0x829A])+' с':ex[0x829A]+' с']);
+      if(ex[0x829D])rows.push(['Диафрагма','f/'+ex[0x829D].toFixed(1)]);if(ex[0x8827])rows.push(['ISO',String(ex[0x8827])]);
+      if(ex[0x920A])rows.push(['Фокусное',ex[0x920A].toFixed(1)+' мм']);if(i0[0x0112])rows.push(['Ориентация',ORI[i0[0x0112]]||String(i0[0x0112])]);
+      const la=dms(gp[2],gp[1]),lo=dms(gp[4],gp[3]);
+      if(la!=null&&lo!=null){gps={lat:la,lon:lo};rows.push(['GPS',la.toFixed(6)+', '+lo.toFixed(6)]);
+        if(typeof gp[6]==='number')rows.push(['Высота',(gp[5]===1?'-':'')+gp[6].toFixed(1)+' м']);
+        if(typeof gp[0x11]==='number')rows.push(['Направление',gp[0x11].toFixed(0)+'°']);
+        if(gp[0x1D])rows.push(['Дата GPS',String(gp[0x1D])]);
+        if(dt&&/^\d{4}:\d\d:\d\d/.test(dt))$('#sd').value=dt.slice(0,10).replace(/:/g,'-')}
+      else rows.push(['GPS','в метаданных нет координат'])}
+    else rows.push(['EXIF',/jpe?g/i.test(f.type)?'не найден (мессенджеры и соцсети обычно удаляют метаданные)':'для этого формата не читается'])}
+  }catch(e){}}
+  showMeta(rows,gps)}
+$('#drop').addEventListener('click',e=>{if(e.target.id!=='file')$('#file').click()});
+$('#file').addEventListener('change',e=>loadFile(e.target.files[0]));
+['dragover','dragenter'].forEach(n=>$('#drop').addEventListener(n,e=>{e.preventDefault();$('#drop').classList.add('over')}));
+['dragleave','drop'].forEach(n=>$('#drop').addEventListener(n,e=>{e.preventDefault();$('#drop').classList.remove('over')}));
+$('#drop').addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)loadFile(f)});
+function snap(el,max){const w=el.naturalWidth||el.videoWidth,h=el.naturalHeight||el.videoHeight;if(!w||!h)return Promise.resolve(null);
+  const s=Math.min(1,(max||1568)/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.round(w*s);c.height=Math.round(h*s);
+  c.getContext('2d').drawImage(el,0,0,c.width,c.height);return new Promise(r=>c.toBlob(r,'image/jpeg',.88))}
+function fullFrame(el){const c=document.createElement('canvas');c.width=el.videoWidth;c.height=el.videoHeight;c.getContext('2d').drawImage(el,0,0);return new Promise(r=>c.toBlob(r,'image/png'))}
+async function save(name,data){let D=null;try{D=window.claude&&await window.claude.use('downloads')}catch(e){}
+  if(!D){try{const bl=data instanceof Blob?data:new Blob([data]),a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast('Файл сохранён')}catch(e){toast('Не удалось сохранить файл')}return}
+  try{await D.save({filename:name,data});toast('Файл сохранён')}catch(e){if(!e||e.code!=='declined')toast('Не удалось сохранить файл')}}
+$('#grab').addEventListener('click',async()=>{const v=geo.el;if(!v||geo.kind!=='video')return;const b=await fullFrame(v);if(!b){toast('Кадр недоступен');return}save('кадр_'+v.currentTime.toFixed(2)+'с.png',b)});
+$('#useframe').addEventListener('click',async()=>{const v=geo.el;if(!v||geo.kind!=='video')return;const b=await fullFrame(v);if(b)loadFile(new File([b],'кадр_'+v.currentTime.toFixed(2)+'с.png',{type:'image/png'}))});
+setInterval(()=>{if(geo.kind==='video'&&geo.el)$('#vtime').textContent=geo.el.currentTime.toFixed(2)+' / '+(isFinite(geo.el.duration)?geo.el.duration.toFixed(1):'?')+' с'},250);
+mkChat($('#chat2'),{title:'ИИ-геолокатор',sub:'Предположения о местности по видимым признакам',ph:'Добавьте подсказки: страна, время года, что рядом…',
+  chips:['Определи примерную местность по фото','Какие признаки на фото самые информативные?','Что проверить дальше, чтобы подтвердить?'],
+  rules:'Ты помощник по GEOINT внутри инструмента OSINT Hub. Задача: по описанию и, если приложено, по фото предположить регион, страну или город по видимым признакам (разметка, знаки, ландшафт, архитектура, язык надписей, растительность, инфраструктура, тени, погода). Дай 2-4 гипотезы, для каждой уверенность в процентах (никогда 100%), признаки за и против, и конкретные следующие шаги проверки (карты, Mapillary, Overpass, SunCalc, спутниковые снимки). Не определяй личности людей на фото и не называй имён, работай только с местностью. Если данных мало, прямо скажи об этом. Отвечай по-русски, структурно и коротко.',
+  images:async()=>{if(!geo.el)return[];const b=await snap(geo.el,1568);return b?[b]:[]},
+  ctx:()=>{if(!geo.el)return'Файл не загружен.';return'Загружен '+(geo.kind==='video'?'видеофайл (приложен текущий кадр)':'снимок')+'. Метаданные:\n'+geo.rows.filter(r=>r[0]!=='SHA-256'&&r[0]!=='Файл').map(r=>r[0]+': '+r[1]).join('\n')}});
+
+/* sun / shadow */
+const RD=Math.PI/180;
+function sunPos(ms,lat,lon){const d=ms/86400000-10957.5,g=(357.529+0.98560028*d)*RD,q=280.459+0.98564736*d,
+  L=(q+1.915*Math.sin(g)+0.020*Math.sin(2*g))*RD,e=(23.439-0.00000036*d)*RD,ra=Math.atan2(Math.cos(e)*Math.sin(L),Math.cos(L)),dec=Math.asin(Math.sin(e)*Math.sin(L)),
+  H=(280.46061837+360.98564736629*d)*RD+lon*RD-ra,la=lat*RD,
+  el=Math.asin(Math.sin(la)*Math.sin(dec)+Math.cos(la)*Math.cos(dec)*Math.cos(H)),
+  az=Math.atan2(Math.sin(H),Math.cos(H)*Math.sin(la)-Math.tan(dec)*Math.cos(la))/RD+180;
+  return{el:el/RD,az:(az%360+360)%360}}
+$('#sd').value=new Date().toISOString().slice(0,10);
+$('#scalc').addEventListener('click',()=>{const h=+$('#sh').value,s=+$('#sl').value,out=$('#sout');
+  if(!(h>0)||!(s>0)){out.innerHTML='<div class="note">Укажите высоту предмета и длину тени.</div>';return}
+  const tgt=Math.atan(h/s)/RD;let html='<div class="note">Угол Солнца над горизонтом: <b>'+tgt.toFixed(1)+'°</b></div>';
+  const la=parseFloat($('#sla').value),lo=parseFloat($('#slo').value),ds=$('#sd').value,tz=+$('#stz').value||0;
+  if(isFinite(la)&&isFinite(lo)&&ds){const[y,m,d]=ds.split('-').map(Number),t0=Date.UTC(y,m-1,d)-tz*3600000;let prev=null,hits=[],mx=-90;
+    for(let i=0;i<=288;i++){const t=t0+i*300000,p=sunPos(t,la,lo);mx=Math.max(mx,p.el);const df=p.el-tgt;
+      if(prev&&(prev.df<0)!==(df<0)){const f=Math.abs(prev.df)/(Math.abs(prev.df)+Math.abs(df)),tm=prev.t+f*300000,pp=sunPos(tm,la,lo);hits.push({tm,az:pp.az})}prev={df,t}}
+    if(!hits.length)html+='<div class="note warn" style="margin-top:8px">В этот день Солнце не достигает такого угла (максимум '+mx.toFixed(1)+'°). Проверьте дату, место и размеры.</div>';
+    else html+='<div class="scroll"><table class="tbl" style="margin-top:8px"><tr><th>Местное время</th><td>Азимут Солнца / направление тени</td></tr>'+hits.map(x=>{const lt=new Date(x.tm+tz*3600000),hh=String(lt.getUTCHours()).padStart(2,'0')+':'+String(lt.getUTCMinutes()).padStart(2,'0');return'<tr><th style="width:30%">'+hh+'</th><td>'+x.az.toFixed(0)+'° / '+((x.az+180)%360).toFixed(0)+'°</td></tr>'}).join('')+'</table></div><p class="sub" style="margin-top:8px">Азимут считается от севера по часовой. Сверьте направление тени на снимке с картой.</p>'}
+  else html+='<p class="sub" style="margin-top:8px">Добавьте широту, долготу и дату, чтобы получить время.</p>';
+  out.innerHTML=html});
+
+/* ---------- 03 SOCIAL ENGINEERING (defense) ---------- */
+const FLAGS=[
+ [/срочно|немедленно|в течение (часа|\d+ (мин|час))|иначе|будет заблокирован|последнее предупреждение|urgent|immediately|within \d+ (hour|minute)|suspend|final notice/i,'Давление срочностью',2],
+ [/парол|пин-?код|код из (смс|sms)|cvv|cvc|одноразов|passcode|verification code|2fa|otp/i,'Запрос паролей или кодов подтверждения',3],
+ [/перевед|оплат|реквизит|гифт|подарочн|crypto|bitcoin|usdt|wire transfer|gift card|invoice/i,'Просьба о деньгах или оплате',2],
+ [/директор|руководител|служба безопасности|банк|налогов|полици|техподдержк|support team|ceo|bank|irs|police/i,'Ссылка на авторитет или организацию',1],
+ [/https?:\/\/(bit\.ly|tinyurl|t\.co|cutt\.ly|clck\.ru|goo\.gl|is\.gd|rebrand\.ly)\S*/i,'Сокращённая ссылка',2],
+ [/xn--|https?:\/\/\d{1,3}(\.\d{1,3}){3}/i,'Подозрительный адрес (punycode или IP)',3],
+ [/\.(exe|scr|js|vbs|bat|iso|lnk|docm|xlsm|zip|rar)\b/i,'Опасный тип вложения',3],
+ [/никому не говорите|конфиденциально|не сообщайте|do not tell|keep this secret|confidential/i,'Просьба сохранить в тайне',2],
+ [/вы выиграли|приз|компенсаци|наследств|выплат|you have won|prize|lottery|refund/i,'Обещание выгоды',2],
+ [/подтвердите (данные|аккаунт|личность)|войдите|авторизуйтесь|verify your|confirm your|sign in to/i,'Просьба «подтвердить» данные по ссылке',2]];
+$('#mscan').addEventListener('click',()=>{const t=$('#msg').value.trim(),o=$('#mout');if(!t){o.innerHTML='<div class="note">Вставьте текст сообщения.</div>';return}
+  const hit=FLAGS.filter(f=>f[0].test(t)),score=hit.reduce((a,f)=>a+f[2],0);
+  const lv=score>=6?['Высокий риск','bad']:score>=3?['Подозрительно','warn']:['Явных признаков мало','good'];
+  const col={bad:'var(--bad)',warn:'var(--warn)',good:'var(--good)'}[lv[1]];
+  const links=(t.match(/https?:\/\/[^\s)>\]]+/gi)||[]).slice(0,6);
+  o.innerHTML='<div class="note" style="box-shadow:inset 0 0 0 1px '+col+';color:var(--fg)"><b style="color:'+col+'">'+lv[0]+'</b> · найдено признаков: '+hit.length+'</div>'
+   +(hit.length?'<ul style="margin:10px 0 0;padding-left:18px;color:var(--mute)">'+hit.map(f=>'<li>'+esc(f[1])+'</li>').join('')+'</ul>':'')
+   +(links.length?'<h4 class="lbl" style="margin-top:14px">Ссылки в тексте (не открывайте, проверьте домен)</h4>'+links.map(l=>'<div class="cmd"><code>'+esc(l)+'</code></div>').join(''):'')
+   +'<p class="sub" style="margin-top:10px">Быстрая проверка по ключевым словам не заменяет суждения. Если сомневаетесь, свяжитесь с отправителем другим каналом.</p>'});
+const SEP=['Письменное разрешение владельца системы','Чёткие рамки: кто, что и когда проверяется','Исключены критичные системы и личные данные','Известен контакт для остановки учений','Нет реальных брендов и ссылок на вредоносное','План разбора и обучения после учений','Метрики: сколько сообщили, а не кто ошибся'];
+const sep=new Set(ls.get('sep',[]));
+function renderSep(){$('#seplan').innerHTML=SEP.map((s,i)=>'<label class="step"><input type="checkbox" data-i="'+i+'"'+(sep.has(i)?' checked':'')+'><b>'+esc(s)+'</b></label>').join('');$('#sebar').style.width=Math.round(sep.size/SEP.length*100)+'%'}
+$('#seplan').addEventListener('change',e=>{const i=+e.target.dataset.i;e.target.checked?sep.add(i):sep.delete(i);ls.set('sep',[...sep]);renderSep()});renderSep();
+const se=mkChat($('#chat3'),{title:'ИИ по защите от соц. инженерии',sub:'Разбор сообщений, памятки, планы учений',tier:'default',ph:'Например: составь памятку для бухгалтерии',
+  chips:['Составь памятку «Как распознать фишинг»','Что о компании видно снаружи и как это снизить?','Спланируй учение по осведомлённости'],
+  rules:'Ты помощник по защите от социальной инженерии внутри инструмента OSINT Hub. Помогай: разбирать подозрительные сообщения (признаки, вердикт, что делать), писать памятки и учебные материалы, планировать санкционированные учения по осведомлённости (цели, рамки, согласования, метрики, разбор), оценивать, что об организации видно из открытых источников и как уменьшить утечку деталей. Не пиши готовые обманные сообщения для рассылки реальным людям, не имитируй реальные организации и не помогай обманывать конкретного человека. Для учебных примеров используй вымышленные компании и пометку «УЧЕБНЫЙ ПРИМЕР». Отвечай по-русски, структурно и коротко.'});
+$('#mai').addEventListener('click',()=>{const t=$('#msg').value.trim();if(!t){toast('Сначала вставьте сообщение');return}se.ask('Разбери это сообщение: признаки обмана, вердикт (опасно, подозрительно, похоже на безопасное), что делать получателю и что сообщить в службу безопасности.\n\n---\n'+t.slice(0,6000)+'\n---');se.host.scrollIntoView({behavior:'smooth',block:'center'})});
+
+/* ---------- 04 LEARN ---------- */
+const TR={
+ base:{n:'Основы',d:'Базовый уровень: от первых запросов до аккуратной фиксации источников.',s:[
+  ['Что такое OSINT и границы закона','Открытые источники, этика, когда нужно остановиться'],['Продвинутые операторы поиска','Кавычки, site:, filetype:, inurl:, диапазоны дат'],['Архивы и кэш','Wayback Machine, archive.today, как сохранять свидетельства'],['Поиск по нику и e-mail','Sherlock, Maigret, Holehe, как сверять совпадения'],['Обратный поиск по фото','Google Lens, Яндекс, TinEye, обрезка и зеркалирование'],['Веди журнал расследования','Ссылка, время, скриншот, хэш, уровень уверенности']]},
+ pro:{n:'Продвинутый',d:'Реестры, сеть, граф связей и проверка достоверности.',s:[
+  ['Реестры компаний и бенефициары','OpenCorporates, Aleph, OpenOwnership, цепочки владения'],['Домены и инфраструктура','WHOIS, DNS-история, сертификаты, Shodan'],['Метаданные и цифровая криминалистика','ExifTool, шумы и повторные сжатия, правдоподобие'],['Социальные графы','Связи, общие подписки, анализ временных паттернов'],['Анализ достоверности','Источник, мотив, независимое подтверждение, шкала уверенности'],['Отчёт и хронология','Структура, ссылки на доказательства, что не удалось проверить']]},
+ geo:{n:'GEOINT',d:'Геолокация и хронолокация по фото и видео.',s:[
+  ['Признаки местности','Дороги, знаки, ЛЭП, растительность, архитектура'],['Работа со спутниковыми снимками','Sentinel, Google Earth, сопоставление сезонов и истории'],['Улицы и панорамы','Mapillary, Яндекс, Google, привязка ракурса'],['Запросы Overpass','Поиск объектов по сочетанию признаков в OSM'],['Тени и время','Угол Солнца, SunCalc, проверка заявленной даты'],['Верификация видео','Покадровый разбор, ориентиры, погода, звук']]},
+ mil:{n:'Военные кейсы',d:'Открытые данные о конфликтах: проверка и документирование, без оперативных деталей.',s:[
+  ['Источники по конфликтам','Спутники, ADS-B, AIS, соцсети, официальные заявления'],['Опознание техники','Силуэты, маркировка, эволюция образцов по открытым каталогам'],['Верификация кадров с места событий','Дата, место, автор, повторное использование старых видео'],['Хронология ударов и перемещений','Сопоставление теней, FIRMS и заявленных событий'],['Дезинформация и фейки','Приёмы подмены, проверка цепочки публикаций'],['Безопасность и этика','Риски для людей на кадрах, что нельзя публиковать']]}};
+const CASES=[
+ ['Крушение рейса MH17 (2014)','Bellingcat и другие группы по открытым фото, видео и записям сопоставили маршрут колонны техники, геолоцировали кадры и проверили метаданные. Метод: хронология по независимым источникам.'],
+ ['Отравление Скрипалей (2018)','Журналисты сопоставили открытые базы, регистрации и утечки. Урок: перекрёстная проверка разных реестров и осторожная оценка достоверности.'],
+ ['Взрыв в порту Бейрута (2020)','Сотни видео с разных ракурсов геолоцировали и синхронизировали по времени, восстановив последовательность событий. Метод: триангуляция ракурсов.'],
+ ['Лагеря в Синьцзяне (2018–2020)','Журналисты по спутниковым снимкам и открытым данным показали масштаб строительства. Метод: сравнение снимков по датам и сверка с документами.'],
+ ['Концентрация войск у границ (2021–2022)','Аналитики по коммерческим спутниковым снимкам и видео в соцсетях отслеживали накопление техники. Метод: накопительный анализ источников.'],
+ ['Буча (2022)','Редакции сопоставили спутниковые снимки с видео и показали, что тела лежали на улице в период оккупации. Метод: привязка по датам снимков и теням.']];
+let trk='base';const prog=ls.get('prog',{});
+$('#lvls').innerHTML=Object.entries(TR).map(([k,v])=>'<button class="chip'+(k===trk?' on':'')+'" data-k="'+k+'">'+esc(v.n)+'</button>').join('');
+function renderLearn(){const t=TR[trk],done=new Set(prog[trk]||[]);$('#trkT').textContent=t.n;$('#trkD').textContent=t.d;
+  $('#trk').innerHTML=t.s.map((s,i)=>'<label class="step"><input type="checkbox" data-i="'+i+'"'+(done.has(i)?' checked':'')+'><div><b>'+esc(s[0])+'</b><small>'+esc(s[1])+'</small></div></label>').join('');
+  $('#trkbar').style.width=Math.round(done.size/t.s.length*100)+'%';$('#trkp').textContent='Пройдено '+done.size+' из '+t.s.length;
+  $('#cases').innerHTML=CASES.map(c=>'<details><summary>'+esc(c[0])+'</summary><div>'+esc(c[1])+'</div></details>').join('')}
+$('#lvls').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;trk=b.dataset.k;$$('#lvls .chip').forEach(c=>c.classList.toggle('on',c===b));renderLearn()});
+$('#trk').addEventListener('change',e=>{const i=+e.target.dataset.i,s=new Set(prog[trk]||[]);e.target.checked?s.add(i):s.delete(i);prog[trk]=[...s];ls.set('prog',prog);renderLearn()});
+hooks.learn=renderLearn;
+
+/* ---------- 05 VISUALIZATION ---------- */
+const TCOL={person:'#e6e9ee',org:'#9fb0c6',phone:'#c9b79c',email:'#b7a4c9',domain:'#8fc0b5',place:'#c99a9a',account:'#a9c28f',other:'#8a8f98'};
+const TLBL={person:'Человек',org:'Организация',phone:'Телефон',email:'E-mail',domain:'Домен',place:'Место',account:'Аккаунт',other:'Другое'};
+const TMAP={person:'person',человек:'person',org:'org',компания:'org',организация:'org',орг:'org',phone:'phone',телефон:'phone',email:'email',почта:'email',domain:'domain',домен:'domain',place:'place',место:'place',account:'account',аккаунт:'account',ник:'account',other:'other',другое:'other'};
+const EX={graph:'# Пример: вымышленные данные\n# Узлы: имя | тип\nИван Петров | person\nООО Вектор | org\n+7 900 000-00-01 | phone\nvektor-demo.example | domain\nmail@vektor-demo.example | email\nМария Орлова | person\nМосква | place\n@ivan_demo | account\n# Связи: A -> B : подпись\nИван Петров -> ООО Вектор : директор\nМария Орлова -> ООО Вектор : учредитель\nООО Вектор -> vektor-demo.example : владеет\nvektor-demo.example -> mail@vektor-demo.example : почта домена\nИван Петров -> +7 900 000-00-01 : указан в контактах\nИван Петров -> @ivan_demo : ник\nООО Вектор -> Москва : адрес\nМария Орлова -- Иван Петров : знакомы',
+ tl:'# Дата | событие | место или источник\n2023-02-14 | Регистрация ООО Вектор | реестр\n2023-05-03 | Запущен сайт vektor-demo.example | архив сайта\n2023-09-21 | Смена директора | реестр\n2024-01-10 | Первый контракт | госзакупки'};
+const HELP={graph:'Каждая строка: «Узел | тип» или «A -> B : подпись». Две дефиса (--) дают связь без стрелки. Типы: person, org, phone, email, domain, place, account, other.',tl:'Каждая строка: «ГГГГ-ММ-ДД | событие | место или источник». События выстроятся по дате.'};
+let mode='graph';const src={graph:ls.get('vg',null)||EX.graph,tl:ls.get('vt',null)||EX.tl};
+const V={nodes:[],edges:[],w:0,h:0,dpr:1,k:1,ox:0,oy:0,alpha:1,drag:null,pan:null,hover:null,sel:null,raf:0,moved:false,init:false};
+function parseGraph(s){const M=new Map(),E=[];
+  const get=(n,t)=>{n=n.trim();if(!n)return null;let o=M.get(n);if(!o){o={id:n,type:t||'other',x:(Math.random()-.5)*260,y:(Math.random()-.5)*260,vx:0,vy:0,deg:0};M.set(n,o)}else if(t&&o.type==='other')o.type=t;return o};
+  for(let line of s.split('\n')){line=line.trim();if(!line||line[0]==='#')continue;let m=line.match(/^(.+?)\s*(->|--)\s*(.+?)(?:\s*:\s*(.+))?$/);
+    if(m){const a=get(m[1]),b=get(m[3]);if(a&&b){E.push({a,b,label:(m[4]||'').trim(),dir:m[2]==='->'});a.deg++;b.deg++}continue}
+    m=line.match(/^(.+?)\s*\|\s*([^|]+)$/);if(m)get(m[1],TMAP[m[2].trim().toLowerCase()]||'other');else get(line)}
+  return{nodes:[...M.values()],edges:E}}
+function buildGraph(){const g=parseGraph(src.graph);V.nodes=g.nodes;V.edges=g.edges;V.sel=null;V.hover=null;$('#vdet').classList.add('hide');V.alpha=1;V.k=1;V.ox=V.w/2;V.oy=V.h/2;V.fitPending=true;
+  const used=[...new Set(V.nodes.map(n=>n.type))];$('#lgd').innerHTML=used.map(t=>'<span><i style="background:'+TCOL[t]+'"></i>'+TLBL[t]+'</span>').join('');loop()}
+function rad(n){return Math.min(18,6+n.deg*1.3)}
+function step(){const N=V.nodes,al=V.alpha;
+  for(let i=0;i<N.length;i++)for(let j=i+1;j<N.length;j++){const a=N[i],b=N[j];let dx=b.x-a.x,dy=b.y-a.y,d2=dx*dx+dy*dy+.5;const d=Math.sqrt(d2),f=11000/d2*al;dx/=d;dy/=d;a.vx-=dx*f;a.vy-=dy*f;b.vx+=dx*f;b.vy+=dy*f}
+  for(const e of V.edges){let dx=e.b.x-e.a.x,dy=e.b.y-e.a.y;const d=Math.sqrt(dx*dx+dy*dy)||1,f=(d-160)*.035*al;dx/=d;dy/=d;e.a.vx+=dx*f;e.a.vy+=dy*f;e.b.vx-=dx*f;e.b.vy-=dy*f}
+  for(const n of N){n.vx-=n.x*.012*al;n.vy-=n.y*.012*al;if(V.drag===n){n.vx=n.vy=0;continue}n.vx*=.82;n.vy*=.82;n.x+=n.vx;n.y+=n.vy}
+  V.alpha=Math.max(0,V.alpha*.988-.0004)}
+function nbrs(n){const s=new Set([n]);for(const e of V.edges){if(e.a===n)s.add(e.b);if(e.b===n)s.add(e.a)}return s}
+function draw(){const c=$('#cv'),x=c.getContext('2d');if(!V.w)return;x.setTransform(V.dpr,0,0,V.dpr,0,0);x.fillStyle='#07080a';x.fillRect(0,0,V.w,V.h);
+  const f=V.sel||V.hover,ns=f?nbrs(f):null,S=(n)=>[n.x*V.k+V.ox,n.y*V.k+V.oy];x.lineWidth=1;x.font='500 10px JetBrains Mono, monospace';x.textAlign='center';
+  const showAll=V.edges.length<=5||V.k>1.6;
+  for(const e of V.edges){const[ax,ay]=S(e.a),[bx,by]=S(e.b),on=!f||(ns.has(e.a)&&ns.has(e.b)&&(e.a===f||e.b===f));
+    x.strokeStyle=on?(f?'rgba(214,222,232,.7)':'rgba(170,182,198,.38)'):'rgba(120,128,140,.08)';x.beginPath();x.moveTo(ax,ay);x.lineTo(bx,by);x.stroke();
+    if(e.dir&&on){const a=Math.atan2(by-ay,bx-ax),r=rad(e.b)*V.k+3,px=bx-Math.cos(a)*r,py=by-Math.sin(a)*r;x.fillStyle=x.strokeStyle;x.beginPath();x.moveTo(px,py);x.lineTo(px-Math.cos(a-.4)*8,py-Math.sin(a-.4)*8);x.lineTo(px-Math.cos(a+.4)*8,py-Math.sin(a+.4)*8);x.fill()}
+    if(e.label&&on&&(showAll||f)){x.fillStyle='rgba(150,160,174,.9)';x.fillText(e.label,(ax+bx)/2,(ay+by)/2-4)}}
+  x.font='500 11px Manrope, sans-serif';
+  for(const n of V.nodes){const[px,py]=S(n),r=rad(n)*V.k,on=!f||ns.has(n),col=TCOL[n.type];x.globalAlpha=on?1:.18;
+    if(n===f){const g=x.createRadialGradient(px,py,r,px,py,r*3.4);g.addColorStop(0,'rgba(220,228,238,.28)');g.addColorStop(1,'rgba(220,228,238,0)');x.fillStyle=g;x.beginPath();x.arc(px,py,r*3.4,0,7);x.fill()}
+    x.fillStyle=col;x.beginPath();x.arc(px,py,r,0,7);x.fill();x.strokeStyle='rgba(7,8,10,.8)';x.lineWidth=2;x.stroke();x.lineWidth=1;
+    x.fillStyle='#d4d9e0';x.fillText(n.id.length>26?n.id.slice(0,25)+'…':n.id,px,py+r+13)}
+  x.globalAlpha=1}
+function loop(){cancelAnimationFrame(V.raf);const run=()=>{if(V.alpha>.012||V.drag){step();draw();V.raf=requestAnimationFrame(run)}else{if(V.fitPending){V.fitPending=false;fit()}draw()}};run()}
+function fit(){if(!V.nodes.length||!V.w)return;let a=1e9,b=1e9,c=-1e9,d=-1e9;for(const n of V.nodes){a=Math.min(a,n.x);b=Math.min(b,n.y);c=Math.max(c,n.x);d=Math.max(d,n.y)}const w=c-a+200,h=d-b+140;V.k=Math.max(.4,Math.min(2,V.w/w,V.h/h));V.ox=V.w/2-(a+c)/2*V.k;V.oy=V.h/2-(b+d)/2*V.k}
+function resize(){const w=$('#vzwrap');if(!w.clientWidth)return;const c=$('#cv');V.dpr=Math.min(2,window.devicePixelRatio||1);const nw=w.clientWidth,nh=w.clientHeight;
+  if(!V.w){V.ox=nw/2;V.oy=nh/2}V.w=nw;V.h=nh;c.width=nw*V.dpr;c.height=nh*V.dpr;draw()}
+function hit(px,py){for(let i=V.nodes.length-1;i>=0;i--){const n=V.nodes[i],dx=n.x*V.k+V.ox-px,dy=n.y*V.k+V.oy-py,r=rad(n)*V.k+4;if(dx*dx+dy*dy<=r*r)return n}return null}
+function pt(e){const r=$('#cv').getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]}
+function detail(n){const d=$('#vdet');if(!n){d.classList.add('hide');return}const rows=[];for(const e of V.edges){if(e.a===n)rows.push('→ '+e.b.id+(e.label?' ('+e.label+')':''));else if(e.b===n)rows.push((e.dir?'← ':'↔ ')+e.a.id+(e.label?' ('+e.label+')':''))}
+  d.classList.remove('hide');d.innerHTML='<b>'+esc(n.id)+'</b><div class="sub">'+esc(TLBL[n.type])+' · связей: '+n.deg+'</div>'+(rows.length?'<div style="margin-top:6px;color:var(--mute)">'+rows.slice(0,10).map(r=>esc(r)).join('<br>')+'</div>':'')}
+function bindCanvas(){const c=$('#cv');
+  c.addEventListener('pointerdown',e=>{c.setPointerCapture(e.pointerId);const[px,py]=pt(e),n=hit(px,py);V.moved=false;if(n){V.drag=n;V.alpha=Math.max(V.alpha,.3);loop()}else V.pan={x:px,y:py,ox:V.ox,oy:V.oy};c.style.cursor='grabbing'});
+  c.addEventListener('pointermove',e=>{const[px,py]=pt(e);if(V.drag){V.moved=true;V.drag.x=(px-V.ox)/V.k;V.drag.y=(py-V.oy)/V.k;V.alpha=Math.max(V.alpha,.15)}
+    else if(V.pan){V.moved=true;V.ox=V.pan.ox+px-V.pan.x;V.oy=V.pan.oy+py-V.pan.y;draw()}
+    else{const n=hit(px,py);if(n!==V.hover){V.hover=n;c.style.cursor=n?'pointer':'grab';if(V.alpha<=.012)draw()}}});
+  const up=e=>{if(V.drag&&!V.moved){V.sel=V.sel===V.drag?null:V.drag;detail(V.sel)}else if(!V.drag&&!V.moved&&V.sel){V.sel=null;detail(null)}V.drag=null;V.pan=null;c.style.cursor='grab';draw()};
+  c.addEventListener('pointerup',up);c.addEventListener('pointercancel',up);
+  c.addEventListener('wheel',e=>{e.preventDefault();const[px,py]=pt(e),k0=V.k,k1=Math.max(.3,Math.min(4,k0*(e.deltaY<0?1.12:.89)));V.ox=px-(px-V.ox)*(k1/k0);V.oy=py-(py-V.oy)*(k1/k0);V.k=k1;draw()},{passive:false})}
+function parseTL(s){return s.split('\n').map(l=>l.trim()).filter(l=>l&&l[0]!=='#').map(l=>{const p=l.split('|').map(x=>x.trim());return{d:p[0]||'',t:p[1]||'',w:p[2]||''}}).sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:0)}
+function buildTL(){const ev=parseTL(src.tl);$('#tlbox').innerHTML=ev.length?ev.map(e=>'<div class="ev"><time>'+esc(e.d)+'</time><b>'+esc(e.t)+'</b>'+(e.w?'<span>'+esc(e.w)+'</span>':'')+'</div>').join(''):'<div class="note">Добавьте события в формате «дата | событие | место».</div>'}
+function showMode(){const g=mode==='graph';$('#vzwrap').classList.toggle('hide',!g);$('#tlcard').classList.toggle('hide',g);$('#vsrc').value=src[mode];$('#vhelp').textContent=HELP[mode];$$('[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===mode));if(g){resize();buildGraph()}else buildTL()}
+function build(){src[mode]=$('#vsrc').value;ls.set(mode==='graph'?'vg':'vt',src[mode]);mode==='graph'?buildGraph():buildTL()}
+$('#vbuild').addEventListener('click',build);
+$('#vex').addEventListener('click',()=>{$('#vsrc').value=EX[mode];build()});
+$('#vsrc').addEventListener('input',()=>{clearTimeout(V.t);V.t=setTimeout(build,500)});
+$$('[data-t]').forEach(b=>b.addEventListener('click',()=>{src[mode]=$('#vsrc').value;mode=b.dataset.t;showMode()}));
+$('#vpng').addEventListener('click',()=>{if(mode!=='graph'){toast('PNG доступен для графа');return}const c=$('#cv');draw();c.toBlob(b=>{if(b)save('граф.png',b)},'image/png')});
+hooks.viz=()=>{if(!V.init){V.init=true;bindCanvas();new ResizeObserver(()=>{resize()}).observe($('#vzwrap'))}showMode()};
+const vc=mkChat($('#chat5'),{title:'ИИ-визуализатор',sub:'Вставьте заметки, ИИ разложит их на граф и хронологию',tier:'default',ph:'Вставьте заметки, выписки, список фактов…',
+  chips:['Как лучше показать эти связи?','Какие связи стоит проверить дополнительно?'],
+  extra:'<button class="btn liquid" id="vai">Собрать визуализацию из текста</button>',
+  rules:'Ты помощник по визуализации расследований внутри инструмента OSINT Hub. Помогай выбрать способ показать данные (граф связей, хронология, карта), заметить пробелы и противоречия, предложить, какие связи стоит проверить. Опирайся только на данные пользователя и не выдумывай факты. Отвечай по-русски, коротко.',
+  ctx:()=>'Текущие данные ('+(mode==='graph'?'граф':'хронология')+'):\n'+(src[mode]||'').slice(0,3500)});
+$('#vai').addEventListener('click',async()=>{if(!SAMPLE){toast('ИИ работает, когда страница открыта в Claude');return}
+  const ta=$('.ta',$('#chat5')),text=(ta.value.trim()||$('#vsrc').value.trim()).slice(0,20000);if(!text){toast('Вставьте текст в поле ИИ-визуализатора');return}
+  const btn=$('#vai');btn.disabled=true;btn.textContent='Собираю…';
+  const prompt='Из текста пользователя извлеки сущности и связи для графа и события для хронологии. Ответь только JSON такого вида: {"nodes":[{"name":"...","type":"person|org|phone|email|domain|place|account|other"}],"edges":[{"from":"...","to":"...","label":"..."}],"events":[{"date":"ГГГГ-ММ-ДД","title":"...","place":"..."}]}. Используй только факты из текста, ничего не добавляй. Одну и ту же сущность называй одинаково везде. Если дата неизвестна, не создавай событие.\n\nТекст:\n'+text;
+  try{const r=await SAMPLE.json(prompt,{modelTier:'default'});const ns=Array.isArray(r&&r.nodes)?r.nodes:[],es=Array.isArray(r&&r.edges)?r.edges:[],ev=Array.isArray(r&&r.events)?r.events:[];const cl=s=>String(s==null?'':s).replace(/[\n|]/g,' ').replace(/->|--/g,'-').trim();
+    const g=['# Собрано ИИ из вашего текста. Проверьте перед использованием.'].concat(ns.filter(n=>n&&n.name).map(n=>cl(n.name)+' | '+(TMAP[String(n.type).toLowerCase()]||'other')),es.filter(x=>x&&x.from&&x.to).map(x=>cl(x.from)+' -> '+cl(x.to)+(x.label?' : '+cl(x.label):'')));
+    src.graph=g.join('\n');src.tl=['# Собрано ИИ. Дата | событие | место'].concat(ev.filter(x=>x&&x.date&&x.title).map(x=>cl(x.date)+' | '+cl(x.title)+(x.place?' | '+cl(x.place):''))).join('\n');
+    ls.set('vg',src.graph);ls.set('vt',src.tl);showMode();toast('Готово: '+ns.length+' узлов, '+es.length+' связей, '+ev.length+' событий')}
+  catch(e){toast(errText(e))}
+  btn.disabled=false;btn.textContent='Собрать визуализацию из текста'});
+
+/* ---------- 06 CASE ---------- */
+const has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+const CONF={high:'Высокая',mid:'Средняя',low:'Низкая'},KIND={finding:'Находка',target:'Запрос',meta:'Метаданные',graph:'Граф',timeline:'Хронология'};
+const CASE=(()=>{const d=ls.get('case',null);return d&&Array.isArray(d.items)?d:{title:'',basis:'',items:[]}})();
+const persist=()=>ls.set('case',CASE);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const cut=(s,n)=>String(s==null?'':s).slice(0,n);
+const when=ts=>new Date(ts).toLocaleString('ru-RU');
+async function sha(s){try{const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return''}}
+async function addItem(o){const it=Object.assign({id:uid(),ts:new Date().toISOString(),kind:'finding',title:'',url:'',note:'',conf:'mid',type:'',q:''},o);
+  it.title=cut(it.title,200);it.url=cut(it.url,500);it.note=cut(it.note,20000);it.q=cut(it.q,200);
+  it.hash=await sha([it.ts,it.kind,it.title,it.url,it.note].join('\n'));CASE.items.unshift(it);persist();renderCase();return it}
+function renderCase(){const L=$('#flist');$('#ccount').textContent=String(CASE.items.length);
+  L.innerHTML=CASE.items.length?CASE.items.map(it=>{
+    const link=it.url?(/^https:\/\//.test(it.url)?'<a href="'+esc(it.url)+'" target="_blank" rel="noopener noreferrer">'+esc(it.url)+' ↗</a>':'<span class="mono">'+esc(it.url)+'</span>'):'';
+    return'<div class="fi"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div style="min-width:0;overflow-wrap:anywhere"><span class="tag">'+esc(KIND[it.kind]||it.kind)+'</span> <b>'+esc(it.title||'(без названия)')+'</b></div><button class="btn sm liquid del" data-id="'+esc(it.id)+'">Удалить</button></div>'
+    +(link?'<div class="sub" style="margin-top:6px;overflow-wrap:anywhere">'+link+'</div>':'')
+    +(it.note?'<pre class="fnote">'+esc(it.note)+'</pre>':'')
+    +'<div class="row" style="margin-top:10px;justify-content:space-between"><span class="sub mono">'+esc(when(it.ts))+(it.hash?' · '+esc(it.hash.slice(0,12)):'')+'</span>'
+    +(it.kind==='finding'?'<select class="sel sm cf" data-id="'+esc(it.id)+'" aria-label="Уверенность">'+Object.entries(CONF).map(([k,v])=>'<option value="'+k+'"'+(it.conf===k?' selected':'')+'>Уверенность: '+v+'</option>').join('')+'</select>':'')+'</div></div>'}).join('')
+  :'<div class="note">Пока пусто. Добавьте находку или нажмите «Добавить в дело» в других разделах.</div>';
+  renderScript()}
+
+/* script generator: arguments are validated and quoted, nothing from the query reaches the shell raw */
+const okv=v=>/^[\p{L}\p{N}@._+-]{1,100}$/u.test(v)&&v[0]!=='-';
+function toolsFor(type,q){
+  if(type==='user'){const u=q.replace(/^@/,'');return[['sherlock',[{v:u}]],['maigret',[{v:u}]],['blackbird',['-u',{v:u}]]]}
+  if(type==='email')return[['holehe',[{v:q}]],['ghunt',['email',{v:q}]],['sherlock',[{v:q.split('@')[0]}]]];
+  if(type==='phone')return[['phoneinfoga',['scan','-n',{v:'+'+phoneInfo(q).d}]]];
+  if(type==='domain'){const h=q.replace(/^https?:\/\//i,'').split('/')[0].replace(/^www\./,'').toLowerCase();return[['amass',['enum','-passive','-d',{v:h}]],['theHarvester',['-d',{v:h},'-b','crtsh']]]}
+  return[]}
+const clean=s=>String(s||'').replace(/[^\p{L}\p{N} .,_-]/gu,'').slice(0,120);
+function buildScript(os){const T=CASE.items.filter(i=>i.kind==='target').reverse();let n=0;const sh=os==='sh',cm=t=>(sh?'# ':'REM ')+t;
+  const out=sh?['#!/usr/bin/env bash','# OSINT Hub: пакетный запуск. Проверьте команды перед запуском.']:['@echo off','chcp 65001 >nul','REM OSINT Hub: пакетный запуск. Проверьте команды перед запуском.'];
+  out.push(cm('Дело: '+clean(CASE.title)),cm('Основание: '+clean(CASE.basis)),sh?'mkdir -p osint_out':'if not exist osint_out mkdir osint_out');
+  if(sh)out.push('run(){ local f="$1"; shift; echo ">>> $*"; if command -v "$1" >/dev/null 2>&1; then "$@" 2>&1 | tee "osint_out/$f.txt"; else echo "пропуск: $1 не установлен"; fi; }');
+  for(const it of T){const tl=toolsFor(it.type,it.q);if(!tl.length)continue;
+    if(tl.some(t=>t[1].some(a=>typeof a!=='string'&&!okv(a.v)))){out.push(cm('пропущено, недопустимые символы: '+clean(it.q)));continue}
+    for(const[tool,args]of tl){n++;const f=tool+'_'+n;
+      if(sh)out.push('run '+f+' '+tool+' '+args.map(a=>typeof a==='string'?a:sq(a.v)).join(' '));
+      else out.push('where '+tool+' >nul 2>&1 && ('+tool+' '+args.map(a=>typeof a==='string'?a:'"'+a.v+'"').join(' ')+' > osint_out\\'+f+'.txt 2>&1) || echo не установлено или ошибка: '+tool)}}
+  if(!n)out.push(cm('нет подходящих запросов: добавьте в дело ник, e-mail, телефон или домен'));
+  return out.join(sh?'\n':'\r\n')}
+function renderScript(){$('#sscript').value=buildScript($('#sos').value)}
+
+/* reports */
+const fname=()=>(CASE.title||'дело').replace(/[^\p{L}\p{N}_-]+/gu,'_').slice(0,50)||'дело';
+const fence=s=>'~~~\n'+String(s).replace(/~~~/g,'~ ~ ~')+'\n~~~';
+const line=s=>String(s).replace(/[\r\n]+/g,' ');
+function groups(){const o=[...CASE.items].reverse(),k=x=>o.filter(i=>i.kind===x),F=k('finding');
+  return{F,tg:k('target'),mt:k('meta'),gr:k('graph'),tl:k('timeline'),hi:F.filter(i=>i.conf==='high').length,md:F.filter(i=>i.conf==='mid').length,lo:F.filter(i=>i.conf==='low')}}
+function reportMD(){const g=groups(),L=['# '+line(CASE.title||'Дело без названия'),'','_Сформировано: '+when(new Date())+' · OSINT Hub_',''];
+  if(CASE.basis)L.push('## Основание и цель','',CASE.basis,'');
+  L.push('## Сводка','','- Находок: '+g.F.length+' (высокая уверенность: '+g.hi+', средняя: '+g.md+', низкая: '+g.lo.length+')','- Запросов: '+g.tg.length,'');
+  if(g.F.length){L.push('## Находки','');g.F.forEach((i,k)=>{L.push('### '+(k+1)+'. '+line(i.title),'','- Уверенность: '+CONF[i.conf]);if(i.url)L.push('- Источник: '+line(i.url));L.push('- Записано: '+when(i.ts));if(i.hash)L.push('- Хэш записи (SHA-256): `'+i.hash+'`');L.push('');if(i.note)L.push(i.note,'')})}
+  if(g.tg.length)L.push('## Объекты поиска','',...g.tg.map(i=>'- '+line(i.title)),'');
+  if(g.mt.length){L.push('## Метаданные файлов','');g.mt.forEach(i=>L.push('### '+line(i.title),'',fence(i.note),''))}
+  if(g.gr.length){L.push('## Граф связей','');g.gr.forEach(i=>L.push(fence(i.note),''))}
+  if(g.tl.length){L.push('## Хронология','');g.tl.forEach(i=>L.push(fence(i.note),''))}
+  if(g.lo.length)L.push('## Что не удалось проверить','',...g.lo.map(i=>'- '+line(i.title)),'');
+  L.push('---','Данные взяты из открытых источников. Перед использованием проверьте их независимо.');return L.join('\n')}
+function reportHTML(){const g=groups(),cls={high:'hi',mid:'md',low:'lo'},pre=s=>'<pre>'+esc(s)+'</pre>';
+  let h='<h1>'+esc(CASE.title||'Дело без названия')+'</h1><p class="m">Сформировано: '+esc(when(new Date()))+' · OSINT Hub</p>';
+  if(CASE.basis)h+='<h2>Основание и цель</h2><p>'+esc(CASE.basis)+'</p>';
+  h+='<h2>Сводка</h2><p>Находок: '+g.F.length+' (высокая: '+g.hi+', средняя: '+g.md+', низкая: '+g.lo.length+'). Запросов: '+g.tg.length+'.</p>';
+  if(g.F.length)h+='<h2>Находки</h2>'+g.F.map((i,k)=>'<div class="it"><b>'+(k+1)+'. '+esc(i.title)+'</b><div class="m">Уверенность: <span class="'+cls[i.conf]+'">'+esc(CONF[i.conf])+'</span> · '+esc(when(i.ts))+(i.hash?' · SHA-256 '+esc(i.hash.slice(0,16)):'')+'</div>'+(i.url?'<div class="m">Источник: '+(/^https:\/\//.test(i.url)?'<a href="'+esc(i.url)+'">'+esc(i.url)+'</a>':esc(i.url))+'</div>':'')+(i.note?pre(i.note):'')+'</div>').join('');
+  if(g.tg.length)h+='<h2>Объекты поиска</h2><ul>'+g.tg.map(i=>'<li>'+esc(i.title)+'</li>').join('')+'</ul>';
+  if(g.mt.length)h+='<h2>Метаданные файлов</h2>'+g.mt.map(i=>'<div class="it"><b>'+esc(i.title)+'</b>'+pre(i.note)+'</div>').join('');
+  if(g.gr.length)h+='<h2>Граф связей</h2>'+g.gr.map(i=>pre(i.note)).join('');
+  if(g.tl.length)h+='<h2>Хронология</h2>'+g.tl.map(i=>pre(i.note)).join('');
+  if(g.lo.length)h+='<h2>Что не удалось проверить</h2><ul>'+g.lo.map(i=>'<li>'+esc(i.title)+'</li>').join('')+'</ul>';
+  h+='<p class="m" style="margin-top:32px">Данные взяты из открытых источников. Перед использованием проверьте их независимо.</p>';
+  return'<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(CASE.title||'Дело без названия')+'</title><style>body{font:15px/1.6 system-ui,sans-serif;max-width:820px;margin:32px auto;padding:0 16px;color:#1a1d21}h1{font-weight:300}h2{margin-top:32px;border-bottom:1px solid #ddd;padding-bottom:4px}.it{margin:14px 0;padding:12px 14px;border:1px solid #e1e4e8;border-radius:8px}.m{color:#6a717b;font-size:12px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f6f8;padding:10px;border-radius:6px;font-size:12px}.hi{color:#2d7a46}.md{color:#8a6a1f}.lo{color:#a33}</style></head><body>'+h+'</body></html>'}
+
+/* handlers */
+$('#ctitle').addEventListener('input',e=>{CASE.title=cut(e.target.value,200);persist()});
+$('#cbasis').addEventListener('input',e=>{CASE.basis=cut(e.target.value,2000);persist();renderScript()});
+$('#fadd').addEventListener('click',async()=>{const t=$('#ftitle').value.trim();if(!t){toast('Укажите, что найдено');return}
+  await addItem({kind:'finding',title:t,url:$('#furl').value.trim(),note:$('#fnote').value.trim(),conf:$('#fconf').value});
+  $('#ftitle').value='';$('#furl').value='';$('#fnote').value='';toast('Добавлено в дело')});
+let arm=null;
+$('#flist').addEventListener('click',e=>{const b=e.target.closest('.del');if(!b)return;const id=b.dataset.id;
+  if(arm&&arm.id===id){clearTimeout(arm.t);arm=null;CASE.items=CASE.items.filter(i=>i.id!==id);persist();renderCase();return}
+  if(arm)clearTimeout(arm.t);b.textContent='Точно?';arm={id,t:setTimeout(()=>{arm=null;b.textContent='Удалить'},2500)}});
+$('#flist').addEventListener('change',e=>{const s=e.target.closest('.cf');if(!s)return;const it=CASE.items.find(i=>i.id===s.dataset.id);if(it&&has(CONF,s.value)){it.conf=s.value;persist()}});
+$('#xmd').addEventListener('click',()=>save(fname()+'.md',reportMD()));
+$('#xhtml').addEventListener('click',()=>save(fname()+'.html',reportHTML()));
+$('#xjson').addEventListener('click',()=>save(fname()+'.json',JSON.stringify(CASE,null,2)));
+$('#ximp').addEventListener('click',()=>$('#ifile').click());
+$('#ifile').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;if(f.size>5e6){toast('Файл слишком большой');return}
+  try{const d=JSON.parse(await f.text());if(!d||!Array.isArray(d.items))throw 0;const have=new Set(CASE.items.map(i=>i.id));let n=0;
+    for(const x of d.items.slice(0,2000)){if(!x||typeof x!=='object')continue;const id=cut(x.id,40)||uid();if(have.has(id))continue;have.add(id);
+      CASE.items.push({id,ts:/^\d{4}-\d\d-\d\dT/.test(x.ts)?cut(x.ts,40):new Date().toISOString(),kind:has(KIND,x.kind)?x.kind:'finding',title:cut(x.title,200),url:cut(x.url,500),note:cut(x.note,20000),conf:has(CONF,x.conf)?x.conf:'mid',type:has(TYPES,x.type)?x.type:'',q:cut(x.q,200),hash:/^[0-9a-f]{64}$/.test(String(x.hash))?x.hash:''});n++}
+    CASE.items.sort((a,b)=>a.ts<b.ts?1:-1);if(!CASE.title)CASE.title=cut(d.title,200);if(!CASE.basis)CASE.basis=cut(d.basis,2000);persist();hooks.case();toast('Импортировано записей: '+n)}
+  catch(err){toast('Файл не похож на дело OSINT Hub')}});
+$('#sos').addEventListener('change',renderScript);
+$('#scopy').addEventListener('click',()=>copy($('#sscript').value));
+$('#ssave').addEventListener('click',()=>{const os=$('#sos').value;save('osint_run_'+(os==='sh'?'sh':'bat')+'.txt',$('#sscript').value)});
+hooks.case=()=>{$('#ctitle').value=CASE.title||'';$('#cbasis').value=CASE.basis||'';renderCase()};
+document.addEventListener('click',e=>{
+  if(e.target.closest('#addq')){if(!curQ.q||!curQ.t){toast('Сначала введите запрос');return}addItem({kind:'target',type:curQ.t,q:curQ.q,title:(TYPES[curQ.t]||'Запрос')+': '+curQ.q});toast('Запрос добавлен в дело')}
+  else if(e.target.closest('#addmeta')){if(!geo.rows.length){toast('Сначала загрузите файл');return}addItem({kind:'meta',title:geo.name||'Файл',note:geo.rows.map(r=>r[0]+': '+r[1]).join('\n')});toast('Метаданные добавлены в дело')}
+  else if(e.target.closest('#vcase')){src[mode]=$('#vsrc').value;(async()=>{await addItem({kind:'graph',title:'Граф связей',note:src.graph});await addItem({kind:'timeline',title:'Хронология',note:src.tl});toast('Граф и хронология добавлены в дело')})()}});
+
+go(location.hash.slice(1)||'search');
+})();
+</script>
+<script>
+/* v0.2: bubbles + cursor glow */
+(function(){'use strict';
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+let on=true;try{on=localStorage.getItem('oh_bub')!=='0'}catch(e){}
+const layer=document.createElement('div');layer.className='bubs';layer.setAttribute('aria-hidden','true');document.body.appendChild(layer);
+const R=(a,b)=>a+Math.random()*(b-a),max=()=>innerWidth<900?8:14;let alive=0;
+function drop(w,delay){setTimeout(()=>{if(w.isConnected){w.remove();alive--;setTimeout(()=>spawn(),R(500,2500))}},delay)}
+function spawn(first){
+  if(!on||reduce||alive>=max())return;alive++;
+  const s=Math.round(R(14,40)),w=document.createElement('div'),b=document.createElement('button');
+  w.className='bw';w.style.cssText='left:'+R(2,96).toFixed(1)+'%;width:'+s+'px;height:'+s+'px;--dur:'+R(22,40).toFixed(1)+'s;--sw:'+R(8,26).toFixed(0)+'px;--sd:'+R(5,9).toFixed(1)+'s;animation-delay:'+(first?-R(0,20).toFixed(1):0)+'s';
+  b.className='bub';b.type='button';b.tabIndex=-1;b.setAttribute('aria-label','Лопнуть пузырёк');
+  w.appendChild(b);layer.appendChild(w);
+  w.addEventListener('animationend',e=>{if(e.target===w)drop(w,0)});
+  b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('pop');
+    for(let i=0;i<8;i++){const p=document.createElement('i'),a=i/8*6.283+R(-.3,.3),d=s*R(.7,1.2)+12,z=R(2,4).toFixed(1);
+      p.style.cssText='--dx:'+(Math.cos(a)*d).toFixed(1)+'px;--dy:'+(Math.sin(a)*d).toFixed(1)+'px;width:'+z+'px;height:'+z+'px';w.appendChild(p)}
+    try{navigator.vibrate&&navigator.vibrate(8)}catch(_){}
+    drop(w,650)},{once:true});
+}
+if(on&&!reduce)for(let i=0;i<max();i++)spawn(true);
+const t=document.createElement('button'),lupa=document.getElementById('lupa');
+t.className='iconbtn liquid';t.type='button';t.id='bubtog';t.setAttribute('aria-label','Пузырьки');t.setAttribute('aria-pressed',String(on));
+t.innerHTML='<svg viewBox="0 0 24 24"><circle cx="9" cy="14.5" r="5.5"/><circle cx="17.5" cy="7" r="2.8"/><path d="M6.6 12.6a3 3 0 0 1 1.7-1.4"/></svg>';
+if(lupa)lupa.parentNode.insertBefore(t,lupa);
+t.addEventListener('click',()=>{on=!on;try{localStorage.setItem('oh_bub',on?'1':'0')}catch(e){}
+  t.setAttribute('aria-pressed',String(on));
+  if(on){for(let i=0;i<max();i++)setTimeout(()=>spawn(),i*240)}else{layer.textContent='';alive=0}});
+let q=0;addEventListener('pointermove',e=>{if(q)return;q=requestAnimationFrame(()=>{q=0;const d=document.documentElement.style;d.setProperty('--mx',e.clientX+'px');d.setProperty('--my',e.clientY+'px')})},{passive:true});
+})();
+</script>
+
+
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
+</body></html>
